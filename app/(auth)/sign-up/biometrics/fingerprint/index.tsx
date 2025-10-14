@@ -1,3 +1,4 @@
+import { useSetFingerprintComplete } from '@/store/useAuthStore';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -11,6 +12,7 @@ export default function Fingerprint() {
   const [completionPercentage, setCompletionPercentage] = useState(0);
   const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const setFingerprintComplete = useSetFingerprintComplete();
 
   useEffect(() => {
     checkBiometricAvailability();
@@ -49,6 +51,8 @@ export default function Fingerprint() {
 
       if (result.success) {
         setCompletionPercentage(100);
+        // Update the store to mark fingerprint as complete
+        setFingerprintComplete();
         router.push('/(auth)/sign-up/biometrics?fingerprintCompleted=true');
       } else {
         setCompletionPercentage(0);
@@ -96,7 +100,6 @@ export default function Fingerprint() {
         </View>
 
         <View className="flex-1 items-center justify-center">
-
           <TouchableOpacity
             onPress={handleFingerprintScan}
             disabled={isAuthenticating || !isBiometricAvailable}
@@ -110,14 +113,11 @@ export default function Fingerprint() {
           </TouchableOpacity>
         </View>
         <View className="mb-8 px-2">
-            <Text className="text-white font-sora text-sm text-center mb-4" numberOfLines={3}>
-              Touch the fingerprint icon to verify your identity
-            </Text>
-
-          </View>
-
-
-     </View>
+          <Text className="text-white font-sora text-sm text-center mb-4" numberOfLines={3}>
+            Touch the fingerprint icon to verify your identity
+          </Text>
+        </View>
+      </View>
     </TouchableWithoutFeedback>
   );
 }

@@ -178,7 +178,7 @@ export default function AddManually() {
             Alert.alert(
                 'PIN Required',
                 'Your PIN is missing or invalid. Please set your PIN again.',
-                [{ text: 'OK', onPress: () => router.replace('/sign-up/pin-setup') }]
+                [{ text: 'OK', onPress: () => router.replace('/(auth)/sign-up/pinsetup') }]
             );
             return;
         }
@@ -243,7 +243,6 @@ export default function AddManually() {
     outputRange: [10, 0],
   });
 
-  // Calculate dynamic padding top for the scroll view content
   const getScrollViewContentPaddingTop = () => {
     // Adjust base padding to account for the animated search bar position and selected tags
     let basePadding = 0; // Start with 0 as the search bar position is absolute below header
@@ -318,7 +317,6 @@ export default function AddManually() {
                 {/* ScrollView for both filtered results and popular searches when searching */}
                 <ScrollView
                   className="flex-1"
-                  contentContainerStyle={{ paddingTop: getScrollViewContentPaddingTop() }}
                   keyboardShouldPersistTaps="handled"
                 >
                   {searchQuery !== '' ? (
@@ -402,7 +400,7 @@ export default function AddManually() {
 
           {/* Proceed Button - Updated visibility logic */}
           {(selectedWallets.length > 0 || (isSearching && searchQuery !== '')) && (
-            <View className="pb-6">
+            <View className="pb-16">
               <Button
                 text="Proceed"
                 onPress={handleProceed}

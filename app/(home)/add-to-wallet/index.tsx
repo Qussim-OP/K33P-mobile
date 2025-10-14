@@ -1,6 +1,6 @@
 import Button from '@/components/Button';
 import { usePhoneStore } from '@/store/usePhoneStore';
-import { usePinStore } from '@/store/usePinStore'; // Ensure usePinStore is imported
+import { usePinStore } from '@/store/usePinStore';
 import { getStoredWallets, addWallets as storageAddWallets, storeWallets } from '@/utils/storage';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import FolderIcon from '../../../assets/images/folder.png';
 import TopLeft from '../../../assets/images/info.png';
-import TopRight from '../../../assets/images/person.png';
+import TopRight from '../../../assets/images/profile.png';
 
 interface Wallet {
   id: string;
@@ -30,18 +30,12 @@ export default function Index() {
   const [walletActionModalVisible, setWalletActionModalVisible] = useState(false);
   const [selectedWallet, setSelectedWallet] = useState<Wallet | null>(null);
   const [wallets, setWallets] = useState<Wallet[]>([]);
-  const [isStoreHydrated, setIsStoreHydrated] = useState(false); // New state to track hydration
-  const params = useLocalSearchParams(); // This is correct
-
+  const [isStoreHydrated, setIsStoreHydrated] = useState(false);
+  const params = useLocalSearchParams();
   const router = useRouter();
   const { phoneNumber } = usePhoneStore();
-  const { pin, hasPin } = usePinStore(); // Get pin and hasPin
-/* 
-  useEffect(() => {
-    if(wallets.length === 0) {
-      router.replace('/(home)');
-    }
-  }) */
+  const { pin, hasPin } = usePinStore();
+
   // Monitor store hydration
   useEffect(() => {
     const unsubscribe = usePinStore.persist.onFinishHydration(() => {
@@ -49,7 +43,6 @@ export default function Index() {
       console.log('Zustand Pin Store Hydrated!');
     });
 
-    // Also check initial state in case it's already hydrated or on web
     if (usePinStore.persist.hasHydrated()) {
       setIsStoreHydrated(true);
       console.log('Zustand Pin Store already hydrated on mount.');
@@ -58,51 +51,61 @@ export default function Index() {
     return () => unsubscribe();
   }, []);
 
-  // Effect to handle redirection if phone number or PIN is genuinely missing AFTER hydration
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  // Effect to handle redirection if phone number or PIN is missing AFTER hydration
   useEffect(() => {
-    // Only proceed if stores are hydrated
     if (!isStoreHydrated) return;
 
-    // If hasPin is true but the pin value is null, something might be wrong with storage or decryption.
-    // However, if hasPin is *false*, it means no PIN was ever set (or it was cleared).
-    // For phone number, if it's null, then it's genuinely missing.
     if (!phoneNumber || (hasPin && pin === null) || (!hasPin && pin === null && router.canGoBack())) {
-        console.warn('Phone number or PIN status requires re-authentication.');
-        Alert.alert(
-            "Session Expired",
-            "Your session has expired or login details are missing. Please sign in again.",
-            [{ text: "OK", onPress: () => router.replace('/sign-in') }]
-        );
+      console.warn('Phone number or PIN status requires re-authentication.');
+      Alert.alert(
+        "Session Expired",
+        "Your session has expired or login details are missing. Please sign in again.",
+        [{ text: "OK", onPress: () => router.replace('/sign-in') }]
+      );
     }
-  }, [phoneNumber, pin, hasPin, isStoreHydrated, router]); // Add isStoreHydrated to dependencies
+  }, [phoneNumber, pin, hasPin, isStoreHydrated, router]);
 
+  // Effect to navigate home if no wallets exist
+  useEffect(() => {
+    if (isStoreHydrated && wallets.length === 0 && phoneNumber) {
+      const timer = setTimeout(() => {
+        router.replace('/(home)');
+      }, 1500); // Small delay to show the empty state briefly
+
+      return () => clearTimeout(timer);
+    }
+  }, [wallets.length, isStoreHydrated, phoneNumber, router]);
 
   useFocusEffect(
     useCallback(() => {
       const loadData = async () => {
-        // Only attempt to load wallets if stores are hydrated and credentials are truly available
         if (isStoreHydrated && phoneNumber && (pin !== null || !hasPin)) {
           console.log('WalletFolders - useFocusEffect: Loading wallets from storage...');
-          const savedWallets = await getStoredWallets(phoneNumber, pin || ''); // Pass pin as string, or empty if no pin
+          const savedWallets = await getStoredWallets(phoneNumber, pin || '');
           console.log('WalletFolders - Wallets loaded from storage:', savedWallets);
           setWallets(savedWallets);
         } else if (isStoreHydrated && (!phoneNumber || (hasPin && pin === null))) {
-           // If stores are hydrated but credentials are bad, clear wallets to reflect no access
-           setWallets([]);
-           console.log('WalletFolders - Cleared wallets due to missing credentials after hydration.');
+          setWallets([]);
+          console.log('WalletFolders - Cleared wallets due to missing credentials after hydration.');
         } else {
-            console.log('WalletFolders - Waiting for stores to hydrate or credentials to become available...');
+          console.log('WalletFolders - Waiting for stores to hydrate or credentials to become available...');
         }
       };
       loadData();
 
-      // Cleanup function (optional, but good practice if you had subscriptions)
       return () => {};
-    }, [phoneNumber, pin, hasPin, isStoreHydrated]) // Re-run effect if these change
+    }, [phoneNumber, pin, hasPin, isStoreHydrated])
   );
 
   useEffect(() => {
-    if (!isStoreHydrated || !phoneNumber) return; // Wait for hydration and phone number
+    if (!isStoreHydrated || !phoneNumber) return;
 
     if (params.updatedWallet) {
       try {
@@ -123,7 +126,6 @@ export default function Index() {
           }
         };
         updateAndSave();
-
       } catch (e) {
         console.error('WalletFolders - Error parsing updated wallet from params:', e);
       }
@@ -131,7 +133,7 @@ export default function Index() {
   }, [params.updatedWallet, phoneNumber, pin, hasPin, isStoreHydrated]);
 
   useEffect(() => {
-    if (!isStoreHydrated || !phoneNumber) return; // Wait for hydration and phone number
+    if (!isStoreHydrated || !phoneNumber) return;
 
     if (params.newWallets) {
       try {
@@ -146,7 +148,6 @@ export default function Index() {
           }
         };
         addAndSave();
-
       } catch (e) {
         console.error('WalletFolders - Error parsing new wallets from params:', e);
       }
@@ -210,7 +211,6 @@ export default function Index() {
               console.log('WalletFolders - No fileId found for wallet, skipping backend deletion.');
             }
 
-            // Step 2: Remove the wallet from local storage
             if (phoneNumber && (pin !== null || !hasPin)) {
                 const updatedWallets = wallets.filter(w => w.id !== selectedWallet.id);
                 setWallets(updatedWallets);
@@ -232,7 +232,6 @@ export default function Index() {
     walletRows.push(wallets.slice(i, i + 2));
   }
 
-  // Render a loading state if stores are not yet hydrated
   if (!isStoreHydrated) {
     return (
       <View className="flex-1 bg-neutral800 justify-center items-center">
@@ -243,14 +242,24 @@ export default function Index() {
 
   return (
     <View className="flex-1 bg-neutral800 px-4 pt-6 pb-12 relative">
-      <View className="absolute top-10 left-4">
+      <TouchableOpacity onPress={() => router.push('/support')} className="absolute top-10 left-4">
         <Image source={TopLeft} className="w-10 h-10" resizeMode="contain" />
-      </View>
-      <View className="absolute top-10 right-4">
+      </TouchableOpacity>
+      
+      <TouchableOpacity onPress={() => router.push('/profile')} className="absolute top-10 right-4">
         <Image source={TopRight} className="w-10 h-10" resizeMode="contain" />
+      </TouchableOpacity>
+
+      <View style={{ marginTop: 80 }}>
+        <View className='px-2 mb-4'>
+          <Text className='text-white font-sora mb-2'>Hello Kara</Text>
+          <Text className='text-[#B8B8B8] font-space-mono text-xs'>
+            {getGreeting()}, and welcome to K33P.
+          </Text>
+        </View>
       </View>
 
-      <View className="flex-1 justify-center mt-24">
+      <View className="flex-1 justify-center mt-2">
         {wallets.length > 0 ? (
           <ScrollView contentContainerStyle={{ paddingVertical: 20 }}>
             {walletRows.map((row, rowIndex) => (
@@ -333,7 +342,7 @@ export default function Index() {
         <View className="flex-1 justify-center items-center">
           <View className="bg-mainBlack rounded-3xl p-6 w-4/5">
             <View className="space-y-4 gap-4">
-            <Button
+              <Button
                 text={selectedWallet?.keyType ? 'View Key Phrases' : 'Add Key Phrases'}
                 onPress={() => {
                   closeWalletActionModal();
@@ -362,7 +371,6 @@ export default function Index() {
                 onPress={handleRemoveWallet}
                 danger
               />
-
             </View>
           </View>
         </View>

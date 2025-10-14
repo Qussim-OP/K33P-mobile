@@ -1,19 +1,17 @@
+import { BackIcon, Lock_3 } from '@/assets/images/svg';
 import Button from '@/components/Button';
 import NumericKeypad from '@/components/Keypad';
 import { useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import { Image, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
-import BackButton from '../../../../../assets/images/back.png';
 import CenterImage from '../../../../../assets/images/face-id.png';
 import Icon2 from '../../../../../assets/images/FaceMask.png';
-import LockIcon from '../../../../../assets/images/lock-3.png';
 import Icon1 from '../../../../../assets/images/Sun.png';
 
 export default function FaceScan() {
   const router = useRouter();
   const [otp, setOtp] = useState(['', '', '', '', '']);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isValid, setIsValid] = useState(false);
   const [showKeypad, setShowKeypad] = useState(false);
   const otpInputs = useRef<(TextInput | null)[]>([]);
 
@@ -54,13 +52,16 @@ export default function FaceScan() {
         {/* Header */}
         <View className="relative flex-row items-center justify-start mb-4">
           <TouchableOpacity className="z-10" onPress={() => router.back()}>
-            <Image source={BackButton} className="w-10 h-10" resizeMode="contain" />
-          </TouchableOpacity>
-          <Image
-            source={LockIcon}
-            className="absolute left-1/2 transform -translate-x-1/2 w-[88px] h-[16px]"
-            resizeMode="contain"
-          />
+          <BackIcon width={40} height={40} />
+
+</TouchableOpacity>
+<Lock_3 
+style={{
+  position: 'absolute',
+  left: '50%',
+  transform: [{ translateX: '-50%' }]
+}}
+/>
         </View>
 
         {/* Centered Image */}
@@ -108,7 +109,7 @@ export default function FaceScan() {
         </View>
 
         {/* Proceed Button at Bottom */}
-        <View className="flex-1 justify-end pb-8">
+        <View className="flex-1 justify-end pb-16">
           <Button
             text="Proceed"
             onPress={handleProceed}

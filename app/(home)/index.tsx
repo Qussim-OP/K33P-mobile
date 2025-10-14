@@ -17,13 +17,17 @@ import { usePhoneStore } from '@/store/usePhoneStore';
 import { usePinStore } from '@/store/usePinStore';
 import { getStoredWallets } from '@/utils/storage';
 
+import { useUserStore } from '@/store/userStore';
 import SlideImg1 from '../../assets/images/carouselImage.png';
 import SlideImg3 from '../../assets/images/carouselImage2.png';
 import SlideImg2 from '../../assets/images/carouselImage3.png';
 import TopLeft from '../../assets/images/info.png';
 import ArrowLeft from '../../assets/images/left.png';
-import TopRight from '../../assets/images/person.png';
+import TopRight from '../../assets/images/profile.png';
 import ArrowRight from '../../assets/images/right.png';
+import slideImage2 from '../../assets/images/slide1.png';
+import slideImage1 from '../../assets/images/slide2.png';
+import slideImage3 from '../../assets/images/slide3.png';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -33,30 +37,47 @@ const slides = [
     image: SlideImg1,
     label: 'What is K33P?',
     headline: 'Decentralized digital safe for your Key-phrases.',
+    description: 'A decentralized digital vault designed to securely store and protect your key-phrases. No central authority, no single point of failure. Your sensitive recovery phrases stay private, encrypted, and accessible only to you. Built for privacy-focused users who value full control over their digital identity and crypto security.',
+    modalImage: slideImage1
   },
   {
     id: 2,
     image: SlideImg2,
     label: 'Why K33P?',
     headline: 'Lifetime access to key phrases + NOK Setup.',
+    description: 'Secure lifetime access to your key phrases with optional Next of Kin (NOK) setup. Ensure your digital assets are protected and accessible when needed  by you or someone you trust. A privacy-first solution built for security, continuity, and peace of mind.',
+    modalImage: slideImage2
+
   },
   {
     id: 3,
     image: SlideImg3,
     label: 'How to get started with K33P?',
     headline: 'Deposit 2ADA, Create DID, Take back your 2ADA.',
+    description: 'Deposit 2 ADA to create your Decentralized Identifier (DID). Once your DID is successfully created, you can retrieve your 2 ADA  no fees, no strings attached. A secure, trustless way to establish your digital identity on-chain.',
+    modalImage: slideImage3
+
   },
 ];
 
 const ITEM_WIDTH = screenWidth * 0.91;
 const ITEM_SPACING = screenWidth * 0.02;
 
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+};
 export default function Index() {
   const [current, setCurrent] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
+  const [carouselModalVisible, setCarouselModalVisible] = useState(false);
+  const [selectedSlide, setSelectedSlide] = useState(null);
   const [isStoreHydrated, setIsStoreHydrated] = useState(false);
   const router = useRouter();
   const flatListRef = useRef(null);
+  const name = useUserStore((state) => state.name);
 
   const { phoneNumber } = usePhoneStore();
   const { pin, hasPin } = usePinStore();
@@ -138,8 +159,20 @@ export default function Index() {
   const openModal = useCallback(() => setModalVisible(true), []);
   const closeModal = useCallback(() => setModalVisible(false), []);
 
+  const openCarouselModal = useCallback((item) => {
+    setSelectedSlide(item);
+    setCarouselModalVisible(true);
+  }, []);
+
+  const closeCarouselModal = useCallback(() => {
+    setCarouselModalVisible(false);
+    setSelectedSlide(null);
+  }, []);
+
   const renderItem = useCallback(({ item, index }) => (
-    <View
+    <TouchableOpacity
+      activeOpacity={0.8}
+      onPress={() => openCarouselModal(item)}
       style={{
         width: ITEM_WIDTH,
         marginRight: ITEM_SPACING,
@@ -177,19 +210,27 @@ export default function Index() {
           {item.headline}
         </Text>
       </View>
-    </View>
-  ), [current]);
+    </TouchableOpacity>
+  ), [current, openCarouselModal]);
 
   return (
     <View className="flex-1 bg-neutral800 justify-between pt-6 pb-12 relative">
-      <View className="absolute top-10 left-4">
+      <TouchableOpacity onPress={() => router.push('/support')} className="absolute top-10 left-4">
         <Image source={TopLeft} className="w-10 h-10" resizeMode="contain" />
-      </View>
-      <View className="absolute top-10 right-4">
+      </TouchableOpacity>
+      
+      <TouchableOpacity onPress={() => router.push('/profile')} className="absolute top-10 right-4">
         <Image source={TopRight} className="w-10 h-10" resizeMode="contain" />
-      </View>
+      </TouchableOpacity>
 
       <View style={{ marginTop: 80 }}>
+        <View className='px-6 mb-4'>
+          <Text className='text-white font-sora mb-2'>Hello {name || 'User'}!</Text>
+          <Text className='text-[#B8B8B8] font-space-mono text-xs'>
+            {getGreeting()}, and welcome to K33P.
+          </Text>
+        </View>
+
         <FlatList
           ref={flatListRef}
           data={slides}
@@ -206,15 +247,18 @@ export default function Index() {
             offset: (ITEM_WIDTH + ITEM_SPACING) * index,
             index,
           })}
-          contentContainerStyle={{ paddingLeft: 27, paddingRight: ITEM_SPACING }}
+          contentContainerStyle={{ paddingLeft: 20, paddingRight: ITEM_SPACING }}
           onViewableItemsChanged={onViewRef.current}
           viewabilityConfig={viewConfigRef.current}
           pagingEnabled={false}
         />
 
-<View className="flex-row items-center justify-between px-6 mt-6">
+        <View className="flex-row items-center justify-between px-6 mt-6">
           <TouchableOpacity onPress={prevSlide}>
-            <Image source={ArrowLeft} />
+            <Image 
+              source={ArrowLeft} 
+              style={{ opacity: current === 0 ? 0.5 : 1 }}
+            />
           </TouchableOpacity>
 
           <View className="flex-row gap-3 items-center">
@@ -229,7 +273,10 @@ export default function Index() {
           </View>
 
           <TouchableOpacity onPress={nextSlide}>
-            <Image source={ArrowRight} />
+            <Image 
+              source={ArrowRight} 
+              style={{ opacity: current === slides.length - 1 ? 0.5 : 1 }}
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -241,6 +288,7 @@ export default function Index() {
         <Button text="Add New Wallet" onPress={openModal} />
       </View>
 
+      {/* Add Wallet Modal */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -271,6 +319,45 @@ export default function Index() {
               />
             </View>
           </View>
+        </View>
+      </Modal>
+
+      {/* Carousel Item Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={carouselModalVisible}
+        onRequestClose={closeCarouselModal}
+      >
+        <Pressable 
+          onPress={closeCarouselModal} 
+          className="absolute inset-0 bg-black/80"
+        />
+        <View className="absolute bottom-0 w-full bg-mainBlack rounded-t-3xl" style={{ height: '70%' }}>
+          {selectedSlide && (
+            <>
+              <Image
+                source={selectedSlide.modalImage}
+                className="w-full object-cover rounded-t-3xl"
+              />
+              <View className="px-4 py-6">
+                <Text className="text-neutral100 font-space-mono text-sm mb-2">
+                  {selectedSlide.label}
+                </Text>
+               
+                <Text className="text-white font-sora text-sm">
+                  {selectedSlide.description}
+                </Text>
+              </View>
+              <View className="absolute bottom-12 left-0 right-0 px-4">
+                <Button 
+                  text="Close" 
+                  onPress={closeCarouselModal}
+                  outline
+                />
+              </View>
+            </>
+          )}
         </View>
       </Modal>
     </View>

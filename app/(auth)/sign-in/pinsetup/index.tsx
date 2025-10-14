@@ -1,8 +1,8 @@
 import Button from '@/components/Button';
 import NumericKeypad from '@/components/Keypad';
-import { usePinStore } from '@/store/usePinStore'; // Import the store
+import { usePinStore } from '@/store/usePinStore';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react'; // Import useEffect
+import React, { useEffect, useState } from 'react';
 import {
   Image,
   Text,
@@ -15,11 +15,12 @@ import LockIcon from '../../../../assets/images/loginlock-2.png';
 
 export default function PinEntryScreen() {
   const router = useRouter();
-  const storedPin = usePinStore((state) => state.pin); // Get the stored PIN
+  const { pin: storedPin, hasPin } = usePinStore();
   const [pin, setPin] = useState(['', '', '', '']);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isError, setIsError] = useState(false);
-  const [showKeypad, setShowKeypad] = useState(true); // Keypad should start visible
+  const [showKeypad, setShowKeypad] = useState(true);
+  const [isSettingUp, setIsSettingUp] = useState(!hasPin);
 
   const handleKeyPress = (num: string) => {
     if (currentIndex < 4) {
@@ -37,29 +38,37 @@ export default function PinEntryScreen() {
       setPin(newPin);
       setCurrentIndex(currentIndex - 1);
     }
-    setIsError(false); // Clear error on backspace
+    setIsError(false);
   };
 
-  // Use useEffect to trigger validation when PIN is complete
   useEffect(() => {
     const enteredPinComplete = pin.every(d => d !== '');
     if (enteredPinComplete) {
-      handleSubmit(); // Automatically submit when all digits are entered
+      handleSubmit();
     }
-  }, [pin]); // Depend on the 'pin' state
+  }, [pin]);
 
   const handleSubmit = () => {
     const enteredPin = pin.join('');
 
-    if (enteredPin === storedPin) { // Compare against the stored PIN
-      router.push('/sign-in/fingerprint'); // Navigate to next screen
+    if (isSettingUp) {
+      // First time setup - confirm PIN
+      if (pin.length === 4) {
+        usePinStore.getState().setPin(enteredPin);
+        router.push('/sign-in/fingerprint');
+      }
     } else {
-      setIsError(true);
-      setTimeout(() => { // Clear PIN and error after a short delay
-        setPin(['', '', '', '']);
-        setCurrentIndex(0);
-        setIsError(false);
-      }, 1000);
+      // Normal PIN entry
+      if (enteredPin === storedPin) {
+        router.push('/sign-in/fingerprint');
+      } else {
+        setIsError(true);
+        setTimeout(() => {
+          setPin(['', '', '', '']);
+          setCurrentIndex(0);
+          setIsError(false);
+        }, 1000);
+      }
     }
   };
 
@@ -86,10 +95,14 @@ export default function PinEntryScreen() {
         {/* Content */}
         <View className="flex-1">
           <Text className="text-white font-sora-bold text-sm text-center mb-1">
-            Enter your PIN
+            {isSettingUp ? 'Create your PIN' : 'Enter your PIN'}
           </Text>
           <Text className="text-sm font-sora text-center mb-6 px-8 py-2 text-neutral200">
-            {isError ? 'Incorrect PIN, try again' : 'Enter your 4-digit PIN'}
+            {isError 
+              ? 'Incorrect PIN, try again' 
+              : isSettingUp 
+                ? 'Create a 4-digit PIN' 
+                : 'Enter your 4-digit PIN'}
           </Text>
 
           {/* PIN Circles */}
@@ -111,12 +124,12 @@ export default function PinEntryScreen() {
           </View>
         </View>
 
-        {/* Continue Button (Disabled if PIN is not complete) */}
-        <View className={`pb-8 ${showKeypad ? 'mb-80' : ''}`}>
+        {/* Continue Button */}
+        <View className={`pb-16 ${showKeypad ? 'mb-72' : ''}`}>
           <Button
-            text="Continue"
+            text={isSettingUp ? 'Set PIN' : 'Continue'}
             onPress={handleSubmit}
-            isDisabled={pin.some(d => d === '')} // Button disabled until all digits are entered
+            isDisabled={pin.some(d => d === '')}
           />
         </View>
 

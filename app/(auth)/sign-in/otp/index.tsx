@@ -165,7 +165,7 @@ export default function OTPEntryScreen() {
         </View>
 
         {/* Resend OTP and Proceed Button */}
-        <View className={`pb-8 ${showKeypad ? 'mb-80' : ''}`}>
+        <View className={`pb-16 ${showKeypad ? 'mb-72' : ''}`}>
           <TouchableOpacity 
             className="mb-4 items-center"
             onPress={handleResend}

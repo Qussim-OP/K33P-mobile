@@ -1,6 +1,6 @@
 import React from 'react';
 import { Image, Text, TouchableOpacity, View } from 'react-native';
-import BackspaceIcon from '../assets/images/backspace.png';
+import BackspaceIcon from '../assets/images/backspace_new.png';
 
 interface NumericKeypadProps {
   onKeyPress: (value: string) => void;

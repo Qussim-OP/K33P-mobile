@@ -3,14 +3,14 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Clipboard,
-  Image,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Clipboard,
+    Image,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 import { decryptPhrases } from '@/utils/crypto';
@@ -75,7 +75,7 @@ export default function ViewKey() {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch('https://k33p-backend.onrender.com/api/v1/vault/retrive', {
+        const response = await fetch('https://k33p-k33p-reir.onrender.com/api/v1/vault/retrive', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

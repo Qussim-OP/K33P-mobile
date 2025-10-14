@@ -1,4 +1,4 @@
-import "@walletconnect/react-native-compat";
+//import "@walletconnect/react-native-compat";
 import { Slot } from 'expo-router';
 import { View } from 'react-native';
 

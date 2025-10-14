@@ -1,9 +1,11 @@
 import Button from '@/components/Button';
+import { useAuthStore, useLogAuthStore } from '@/store/useAuthStore';
 import { CameraType, CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Image, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
+import FaceFailedImage from '../../../../../assets/images/facefailed.png';
 import FaceScan0 from '../../../../../assets/images/facescan-0.png';
 import FaceScan30 from '../../../../../assets/images/facescan-1.png';
 import FaceScan70 from '../../../../../assets/images/facescan-2.png';
@@ -27,6 +29,9 @@ const FaceSetupScreen = () => {
   const [faceAnalysis, setFaceAnalysis] = useState<any>(null);
   const cameraRef = useRef<CameraView>(null);
   const [processing, setProcessing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { setFaceData } = useAuthStore();
+  const logAuthStore = useLogAuthStore();
 
   const progressSteps = [
     { percent: 0, image: FaceScan0, text: "Keep your face in the center until the registration is complete" },
@@ -49,22 +54,37 @@ const FaceSetupScreen = () => {
     } else if (progress === 70 && faceToken && !processing) {
       analyzeFaceDetails();
     } else if (progress === 100) {
-      setFaceAuthSuccess(true);
+      if (faceAnalysis) {
+        setFaceAuthSuccess(true);
+        logAuthStore(); // Log store state when successful
+      } else {
+        console.error('Progress reached 100% but no face analysis available');
+        setErrorMessage('Face analysis incomplete. Please try again.');
+        setProgress(0);
+      }
     }
-  }, [progress, faceToken, processing]);
+  }, [progress, faceToken, processing, faceAnalysis]);
+
+  const resetScan = () => {
+    console.log('Resetting face scan');
+    setProgress(0);
+    setErrorMessage(null);
+    setFaceToken(null);
+    setFaceAnalysis(null);
+    setProcessing(false);
+  };
 
   const captureAndDetectFace = async () => {
     if (!cameraRef.current || processing) return;
     
     setProcessing(true);
     try {
-      // Capture image from camera
+      console.log('Capturing face image for detection');
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.7,
         base64: false,
       });
 
-      // Prepare form data for Face++ Detect API
       const formData = new FormData();
       formData.append('api_key', FACE_API_KEY);
       formData.append('api_secret', FACE_API_SECRET);
@@ -75,7 +95,7 @@ const FaceSetupScreen = () => {
       } as any);
       formData.append('return_attributes', 'gender,age,emotion,beauty,skinstatus');
 
-      // Call Face++ Detect API
+      console.log('Sending face detection request');
       const response = await fetch('https://api-us.faceplusplus.com/facepp/v3/detect', {
         method: 'POST',
         body: formData,
@@ -85,16 +105,24 @@ const FaceSetupScreen = () => {
       });
 
       const data = await response.json();
+      console.log('Face detection response:', JSON.stringify(data, null, 2));
       
-      if (data.faces && data.faces.length > 0) {
-        // Store the first face token for analysis
+      if (data.faces && data.faces.length === 1) {
+        console.log('Face detected successfully');
         setFaceToken(data.faces[0].face_token);
+        setErrorMessage(null);
+      } else if (data.faces && data.faces.length > 1) {
+        const errorMsg = 'Multiple faces detected. Please ensure only one face is visible.';
+        console.error(errorMsg);
+        throw new Error(errorMsg);
       } else {
-        throw new Error('No faces detected');
+        const errorMsg = data.error_message || 'No faces detected. Please position your face in the frame.';
+        console.error(errorMsg);
+        throw new Error(errorMsg);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Face detection failed:', error);
-      Alert.alert('Error', 'Face detection failed. Please try again.');
+      setErrorMessage(error.message || 'Face detection failed. Please try again.');
       setProgress(0);
     } finally {
       setProcessing(false);
@@ -106,14 +134,14 @@ const FaceSetupScreen = () => {
     
     setProcessing(true);
     try {
-      // Prepare form data for Face++ Analyze API
+      console.log('Analyzing face details with token:', faceToken);
       const formData = new FormData();
       formData.append('api_key', FACE_API_KEY);
       formData.append('api_secret', FACE_API_SECRET);
       formData.append('face_tokens', faceToken);
       formData.append('return_attributes', 'gender,age,emotion,beauty,skinstatus,eyegaze,mouthstatus');
 
-      // Call Face++ Analyze API
+      console.log('Sending face analysis request');
       const response = await fetch('https://api-us.faceplusplus.com/facepp/v3/face/analyze', {
         method: 'POST',
         body: formData,
@@ -123,25 +151,46 @@ const FaceSetupScreen = () => {
       });
 
       const data = await response.json();
+      console.log('Face analysis response:', JSON.stringify(data, null, 2));
       
-      if (data.faces && data.faces.length > 0) {
-        // Store face analysis results
-        setFaceAnalysis(data.faces[0].attributes);
-        console.log('Face analysis:', data.faces[0].attributes);
+      if (data.faces && data.faces.length > 0 && data.faces[0].attributes) {
+        const analysis = data.faces[0].attributes;
+        console.log('Face analysis successful:', analysis);
+        setFaceAnalysis(analysis);
+        
+        // Save to Zustand store
+        setFaceData({
+          token: faceToken,
+          analysis: analysis
+        });
+        
+        // Also save to SecureStore for persistence
         await SecureStore.setItemAsync('user_face_token', faceToken);
-
+        await SecureStore.setItemAsync('user_face_analysis', JSON.stringify(analysis));
+        
+        setErrorMessage(null);
       } else {
-        throw new Error('Face analysis failed');
+        const errorMsg = data.error_message || 'Face analysis failed. No valid face data returned.';
+        console.error(errorMsg);
+        throw new Error(errorMsg);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Face analysis failed:', error);
-      Alert.alert('Error', 'Face analysis failed. Please try again.');
+      setErrorMessage(error.message || 'Face analysis failed. Please try again.');
+      setProgress(0);
     } finally {
       setProcessing(false);
     }
   };
 
   const handleProceed = () => {
+    if (!faceAnalysis) {
+      console.error('Attempted to proceed without face analysis');
+      setErrorMessage('Face analysis data missing. Please try again.');
+      return;
+    }
+    
+    console.log('Proceeding with face registration');
     router.push({
       pathname: '/sign-up/biometrics',
       params: { 
@@ -152,7 +201,7 @@ const FaceSetupScreen = () => {
   };
 
   useEffect(() => {
-    if (isComplete || !permission?.granted) return;
+    if (isComplete || !permission?.granted || errorMessage) return;
 
     const timer = setInterval(() => {
       setProgress(prev => {
@@ -170,7 +219,7 @@ const FaceSetupScreen = () => {
     }, 2000);
 
     return () => clearInterval(timer);
-  }, [isComplete, permission]);
+  }, [isComplete, permission, errorMessage]);
 
   if (!permission) {
     return <View />;
@@ -185,7 +234,7 @@ const FaceSetupScreen = () => {
     );
   }
 
-  if (isComplete && faceAuthSuccess) {
+  if (isComplete && faceAuthSuccess && faceAnalysis) {
     return (
       <View className="flex-1 bg-mainBlack px-5 pt-16">
         <View className="relative flex-row items-center justify-start mb-16">
@@ -216,7 +265,7 @@ const FaceSetupScreen = () => {
           </Text>
         </View>
 
-        <View className="flex-1 justify-end pb-8">
+        <View className="flex-1 justify-end pb-16">
           <Button
             text="Proceed"
             onPress={handleProceed}
@@ -237,11 +286,19 @@ const FaceSetupScreen = () => {
       </View>
 
       <View className="items-center my-8" style={styles.cameraContainer}>
-        <Image
-          source={currentFaceImage}
-          style={styles.faceImage}
-          resizeMode="contain"
-        />
+        {errorMessage ? (
+          <Image
+            source={FaceFailedImage}
+            style={styles.faceImage}
+            resizeMode="contain"
+          />
+        ) : (
+          <Image
+            source={currentFaceImage}
+            style={styles.faceImage}
+            resizeMode="contain"
+          />
+        )}
 
         <View style={styles.cameraWrapper}>
           <CameraView
@@ -253,16 +310,33 @@ const FaceSetupScreen = () => {
       </View>
 
       <View className="items-center mb-2">
-        <Text className="text-neutral100 font-sora text-sm text-center px-7">
-          {currentStep.text}
-        </Text>
+        {errorMessage ? (
+          <Text className="text-red-500 font-sora text-sm text-center px-7">
+            {errorMessage}
+          </Text>
+        ) : (
+          <Text className="text-neutral100 font-sora text-sm text-center px-7">
+            {currentStep.text}
+          </Text>
+        )}
       </View>
 
-      <View className="items-center mt-8">
-        <Text className="text-white font-sora-bold text-2xl">
-          {progress}%
-        </Text>
-      </View>
+      {!errorMessage && (
+        <View className="items-center mt-8">
+          <Text className="text-white font-sora-bold text-2xl">
+            {progress}%
+          </Text>
+        </View>
+      )}
+
+      {errorMessage && (
+        <View className="flex-1 justify-end pb-8">
+          <Button
+            text="Try Again"
+            onPress={resetScan}
+          />
+        </View>
+      )}
     </View>
   );
 };
@@ -305,9 +379,8 @@ const styles = StyleSheet.create({
   top: 25,
   left: '50%',
   marginLeft: -125,
- zIndex: 1,
+  zIndex: 1,
  },
 });
-
 
 export default FaceSetupScreen;
