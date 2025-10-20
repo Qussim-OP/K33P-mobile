@@ -1,5 +1,6 @@
 import Button from '@/components/Button';
 import useCustomFonts from '@/hooks/useCustomFonts';
+import { Video } from 'expo-av';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
 import { Animated, View } from 'react-native';
@@ -48,8 +49,8 @@ export default function Index() {
   return (
     <View className="flex-1 bg-black" onLayout={onLayoutRootView}>
       {/* Top Video Section */}
-      <View className="h-[40%] w-full mt-[-100px]  overflow-hidden">
-      {/*   <Video 
+      <View className="h-[50%] w-full mt-[-100px]  overflow-hidden">
+       <Video 
           source={require('../assets/animation/numbers.mp4')}
           rate={1.0}
           volume={1.0}
@@ -59,7 +60,7 @@ export default function Index() {
           isLooping
           useNativeControls={false}
           style={{ width: '100%', height: '100%' }}
-        />   */}
+        />  
       </View> 
 
       {/* Animated Logo - Positioned lower initially */}
@@ -87,7 +88,7 @@ export default function Index() {
           opacity: buttonsOpacity,
         }}
       >
-        <Button text="Login" onPress={() => router.push('/(home)')} outline />
+        <Button text="Login" onPress={() => router.push('/sign-in')} outline />
         <Button text="Create Account" onPress={() => router.push('/sign-up')} />
       </Animated.View>
     </View>

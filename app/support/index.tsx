@@ -1,7 +1,7 @@
 import Button from '@/components/Button';
 import { AntDesign, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { JSX, useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -19,9 +19,10 @@ import {
   TouchableWithoutFeedback,
   View
 } from 'react-native';
-import SearchIcon from '../../assets/images/search.png'; // Import your search icon image
+import SearchIcon from '../../assets/images/search.png';
 
 import { BackIcon, PHONE } from '@/assets/images/svg';
+import helpContent from '@/constants/support.json';
 import SlideImg1 from '../../assets/images/carouselImage.png';
 import SlideImg3 from '../../assets/images/carouselImage2.png';
 import SlideImg2 from '../../assets/images/carouselImage3.png';
@@ -50,7 +51,15 @@ interface SupportItem {
   };
 }
 
-const { width: screenWidth } = Dimensions.get('window');
+interface SearchResult {
+  id: number;
+  section: string;
+  title: string;
+  route: string;
+  highlightedContent: JSX.Element[];
+}
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const slides: Slide[] = [
   {
@@ -140,17 +149,37 @@ const supportItems: SupportItem[] = [
 const ITEM_WIDTH = screenWidth * 0.91;
 const ITEM_SPACING = screenWidth * 0.02;
 
+const highlightText = (text: string, query: string): JSX.Element => {
+  if (!query) return <Text className="text-white">{text}</Text>;
+  
+  const parts = text.split(new RegExp(`(${query})`, 'gi'));
+  return (
+    <Text className="text-white">
+      {parts.map((part, i) => 
+        part.toLowerCase() === query.toLowerCase() ? (
+          <Text key={i} className="text-main">{part}</Text>
+        ) : (
+          part
+        )
+      )}
+    </Text>
+  );
+};
+
 export default function SupportScreen() {
   const [current, setCurrent] = useState(0);
+  const [searchCurrent, setSearchCurrent] = useState(0);
   const [carouselModalVisible, setCarouselModalVisible] = useState(false);
   const [selectedSlide, setSelectedSlide] = useState<Slide | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [items, setItems] = useState<SupportItem[]>(supportItems);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const router = useRouter();
   const flatListRef = useRef<FlatList>(null);
+  const searchFlatListRef = useRef<FlatList>(null);
   const searchInputRef = useRef<TextInput>(null);
-  const scrollViewRef = useRef<ScrollView>(null);
+  const cardScrollViewRefs = useRef<{[key: string]: any}>({});
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
@@ -217,13 +246,83 @@ export default function SupportScreen() {
     ).map(item => ({ ...item, expanded: false }));
   };
 
+  // Search through all help content and group by section
+  const performSearch = (query: string) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      setItems(filterItems(query));
+      return;
+    }
+
+    const results: SearchResult[] = [];
+    const lowerQuery = query.toLowerCase();
+
+    helpContent.helpSections.forEach(section => {
+      // Check if any content in this section contains the search query
+      const hasMatchingContent = section.content.some(contentItem => {
+        const fullText = (contentItem.heading || '') + ' ' + contentItem.text;
+        return fullText.toLowerCase().includes(lowerQuery);
+      });
+
+      if (hasMatchingContent) {
+        // Create highlighted content for all items in this section
+        const highlightedContent = section.content.map((contentItem, index) => {
+          const fullText = (contentItem.heading || '') + ' ' + contentItem.text;
+          return (
+            <View key={index} className="mb-4">
+              {contentItem.heading && (
+                <Text className="text-main font-sora-bold text-sm mb-2" style={{textDecorationLine: 'underline'}}>
+                  {highlightText(contentItem.heading, query)}
+                </Text>
+              )}
+              <Text className="text-white font-sora text-sm leading-relaxed">
+                {contentItem.id === 1 ? (
+                  <>
+                    <Text className="text-main">
+                      {highlightText('K33P', query)}
+                    </Text>
+                    {highlightText(contentItem.text.substring(4), query)}
+                  </>
+                ) : (
+                  highlightText(contentItem.text, query)
+                )}
+              </Text>
+            </View>
+          );
+        });
+
+        results.push({
+          id: helpContent.helpSections.findIndex(s => s.section === section.section) + 1,
+          section: section.section,
+          title: section.title,
+          route: `/support/${section.section.toLowerCase().replace(' ', '-')}`,
+          highlightedContent
+        });
+      }
+    });
+
+    setSearchResults(results);
+    setItems([]);
+  };
+
   useEffect(() => {
-    setItems(filterItems(searchQuery));
+    if (searchQuery) {
+      performSearch(searchQuery);
+    } else {
+      setSearchResults([]);
+      setItems(filterItems(searchQuery));
+    }
   }, [searchQuery]);
 
   const onViewRef = useRef(({ viewableItems }: { viewableItems: any[] }) => {
     if (viewableItems.length > 0) {
       setCurrent(viewableItems[0].index);
+    }
+  });
+
+  const onSearchViewRef = useRef(({ viewableItems }: { viewableItems: any[] }) => {
+    if (viewableItems.length > 0) {
+      setSearchCurrent(viewableItems[0].index);
     }
   });
 
@@ -239,6 +338,16 @@ export default function SupportScreen() {
     flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
   }, [current]);
 
+  const prevSearchSlide = useCallback(() => {
+    const prevIndex = searchCurrent === 0 ? searchResults.length - 1 : searchCurrent - 1;
+    searchFlatListRef.current?.scrollToIndex({ index: prevIndex, animated: true });
+  }, [searchCurrent, searchResults.length]);
+
+  const nextSearchSlide = useCallback(() => {
+    const nextIndex = searchCurrent === searchResults.length - 1 ? 0 : searchCurrent + 1;
+    searchFlatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+  }, [searchCurrent, searchResults.length]);
+
   const openCarouselModal = useCallback((item: Slide) => {
     setSelectedSlide(item);
     setCarouselModalVisible(true);
@@ -249,7 +358,11 @@ export default function SupportScreen() {
     setSelectedSlide(null);
   }, []);
 
-  const renderItem = useCallback(({ item, index }) => (
+  const navigateToSearchResult = (route: string) => {
+    router.push(route);
+  };
+
+  const renderCarouselItem = useCallback(({ item, index }) => (
     <TouchableOpacity
       activeOpacity={0.8}
       onPress={() => openCarouselModal(item)}
@@ -293,6 +406,41 @@ export default function SupportScreen() {
     </TouchableOpacity>
   ), [current, openCarouselModal]);
 
+  const renderSearchResultItem = useCallback(({ item, index }) => {
+    const cardKey = `${item.section}-${item.id}`;
+    
+    return (
+      <View
+        style={{
+          width: ITEM_WIDTH,
+          marginRight: ITEM_SPACING,
+          backgroundColor: '#222222',
+          borderRadius: 12,
+          opacity: index === searchCurrent ? 1 : 0.6,
+          height: screenHeight * 0.66,
+        }}
+      >
+        <TouchableOpacity
+          activeOpacity={0.8}
+         /*  onPress={() => navigateToSearchResult(item.route)} */
+          className="p-4"
+        >
+          <Text className="text-neutral100 font-space-mono text-xs mb-2">
+            About K33P {item.title}
+          </Text>
+        </TouchableOpacity>
+        
+        <ScrollView
+          ref={ref => cardScrollViewRefs.current[cardKey] = ref}
+          showsVerticalScrollIndicator={true}
+          className="flex-1 px-4 pb-4"
+          contentContainerStyle={{ paddingBottom: 20 }}
+        >
+          {item.highlightedContent}
+        </ScrollView>
+      </View>
+    );
+  }, [searchCurrent, navigateToSearchResult]);
 
   return (
     <TouchableWithoutFeedback onPress={() => {
@@ -304,7 +452,7 @@ export default function SupportScreen() {
         {/* Header - Fixed Position */}
         <View className="mb-4 pb-4 ">
           <TouchableOpacity onPress={() => router.back()} className="absolute left-4 z-10">
-          <BackIcon
+            <BackIcon
               style={{
                 left: '50%',
                 transform: [{ translateX: '-50%' }],
@@ -331,13 +479,8 @@ export default function SupportScreen() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView 
-          ref={scrollViewRef}
-          contentContainerStyle={{ paddingBottom: 120 }}
-          showsVerticalScrollIndicator={false}
-          style={{ marginVertical: 1 }} 
-        >
-          <View className="px-4 mb-8 ">
+        <View className="flex-1">
+          <View className="px-4 mb-4">
             {/* Search Bar */}
             <View className="flex-row items-center bg-searchBg rounded-xl px-3 py-1">
               <Image 
@@ -357,116 +500,203 @@ export default function SupportScreen() {
             </View>
           </View>
 
-          {/* Carousel */}
-          <View >
-            <FlatList
-            ref={flatListRef}
-            data={slides}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={renderItem}
-            snapToInterval={ITEM_WIDTH + ITEM_SPACING}
-            decelerationRate="fast"
-            snapToAlignment="start"
-            initialScrollIndex={0}
-            getItemLayout={(data, index) => ({
-              length: ITEM_WIDTH + ITEM_SPACING,
-              offset: (ITEM_WIDTH + ITEM_SPACING) * index,
-              index,
-            })}
-            contentContainerStyle={{ paddingLeft: 20, paddingRight: ITEM_SPACING }}
-            onViewableItemsChanged={onViewRef.current}
-            viewabilityConfig={viewConfigRef.current}
-            pagingEnabled={false}
-          />
-
-          <View className="flex-row items-center justify-between px-4 mt-6">
-            <TouchableOpacity
-              onPress={prevSlide}
-              activeOpacity={0.7}
-              disabled={current === 0}
-            >
-              <Ionicons
-                name="chevron-back-outline"
-                size={24}
-                color={current === 0 ? '#555' : '#fff'}
-              />
-            </TouchableOpacity>
-
-            <View className="flex-row gap-3 items-center">
-              {slides.map((_, index) => (
-                <Animated.View
-                  key={index}
-                  style={{
-                    width: index === current ? 16 : 8,
-                    height: 8,
-                    borderRadius: 8,
-                    backgroundColor: index === current ? '#FFD939' : '#666',
-                    transition: 'width 0.25s ease-in-out',
-                  }}
+          {/* Search Results Carousel */}
+          {searchQuery && searchResults.length > 0 && (
+            <View className="flex-1">
+              {/* <Text className="text-white font-sora-bold text-sm px-4 mb-2">
+                Search Results ({searchResults.length})
+              </Text> */}
+              <View className="">
+                <FlatList
+                  ref={searchFlatListRef}
+                  data={searchResults}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  keyExtractor={(item) => `${item.section}-${item.id}`}
+                  renderItem={renderSearchResultItem}
+                  snapToInterval={ITEM_WIDTH + ITEM_SPACING}
+                  decelerationRate="fast"
+                  snapToAlignment="start"
+                  initialScrollIndex={0}
+                  getItemLayout={(data, index) => ({
+                    length: ITEM_WIDTH + ITEM_SPACING,
+                    offset: (ITEM_WIDTH + ITEM_SPACING) * index,
+                    index,
+                  })}
+                  contentContainerStyle={{ paddingLeft: 20, paddingRight: ITEM_SPACING }}
+                  onViewableItemsChanged={onSearchViewRef.current}
+                  viewabilityConfig={viewConfigRef.current}
+                  pagingEnabled={false}
                 />
-              ))}
-            </View>
 
-            <TouchableOpacity
-              onPress={nextSlide}
-              activeOpacity={0.7}
-              disabled={current === slides.length - 1}
-            >
-              <Ionicons
-                name="chevron-forward-outline"
-                size={24}
-                color={current === slides.length - 1 ? '#555' : '#fff'}
-              />
-            </TouchableOpacity>
-          </View>
-          </View>
-
-          {/* Support Items List */}
-          <View className="mt-8 px-2">
-            {items.map((item) => (
-              <View key={item.id} className="mb-4">
-                <TouchableOpacity 
-                  onPress={() => toggleItem(item.id)}
-                  className="flex-row justify-between items-center py-3 px-4 bg-neutral700 rounded-lg"
-                >
-                  <Text 
-                    className={`font-sora-bold text-sm ${
-                      item.expanded ? 'text-white' : 'text-white'
-                    }`}
+                <View className="flex-row items-center justify-between px-4 mt-6">
+                  <TouchableOpacity
+                    onPress={prevSearchSlide}
+                    activeOpacity={0.7}
+                    disabled={searchCurrent === 0}
                   >
-                    {item.title}
-                  </Text>
-                  <AntDesign 
-                    name={item.expanded ? 'arrow-down' : 'arrow-right'} 
-                    size={16} 
-                    color='#ffffff'
-                  />
-                </TouchableOpacity>
-                {item.expanded && (
-                  <View className="mt-5 px-4">
-                    <TouchableOpacity 
-                      onPress={() => navigateToItem(item.route)}
-                      className="py-3 px-3 bg-[#222222] rounded-lg"
-                    >
-                      <Text className="text-neutral100 font-space-mono text-xs mb-2">
-                        {item.content.heading}
-                      </Text>
+                    <Ionicons
+                      name="chevron-back-outline"
+                      size={24}
+                      color={searchCurrent === 0 ? '#555' : '#fff'}
+                    />
+                  </TouchableOpacity>
 
-                      <Text className="flex-wrap text-white font-sora text-sm leading-relaxed ">
-                        <Text className="font-sora text-sm text-main">
-                          {item.content.firstWord + ' '}
-                        </Text>
-                        {item.content.text}
-                      </Text>
-                    </TouchableOpacity>
+                  <View className="flex-row gap-3 items-center bg-neutral700 rounded-full px-4 py-2">
+                    {searchResults.map((_, index) => (
+                      <Animated.View
+                        key={index}
+                        style={{
+                          width: index === searchCurrent ? 16 : 8,
+                          height: 8,
+                          borderRadius: 8,
+                          backgroundColor: '#B0B0B0',
+                          transition: 'width 0.25s ease-in-out',
+                        }}
+                      />
+                    ))}
                   </View>
-                )}
+
+                  <TouchableOpacity
+                    onPress={nextSearchSlide}
+                    activeOpacity={0.7}
+                    disabled={searchCurrent === searchResults.length - 1}
+                  >
+                    <Ionicons
+                      name="chevron-forward-outline"
+                      size={24}
+                      color={searchCurrent === searchResults.length - 1 ? '#555' : '#fff'}
+                    />
+                  </TouchableOpacity>
+                </View>
               </View>
-            ))}
-          </View>
-        </ScrollView>
+            </View>
+          )}
+
+          {/* No Search Results Message */}
+          {searchQuery && searchResults.length === 0 && (
+            <View className="flex-1 justify-center items-center">
+              <Text className="text-neutral200 font-sora text-sm text-center">
+                No results found for "{searchQuery}"
+              </Text>
+            </View>
+          )}
+
+          {/* Regular Content (only shown when not searching) */}
+          {!searchQuery && (
+            <View className="flex-1">
+              {/* Regular Carousel */}
+              <View>
+                <FlatList
+                  ref={flatListRef}
+                  data={slides}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  keyExtractor={(item) => item.id.toString()}
+                  renderItem={renderCarouselItem}
+                  snapToInterval={ITEM_WIDTH + ITEM_SPACING}
+                  decelerationRate="fast"
+                  snapToAlignment="start"
+                  initialScrollIndex={0}
+                  getItemLayout={(data, index) => ({
+                    length: ITEM_WIDTH + ITEM_SPACING,
+                    offset: (ITEM_WIDTH + ITEM_SPACING) * index,
+                    index,
+                  })}
+                  contentContainerStyle={{ paddingLeft: 20, paddingRight: ITEM_SPACING }}
+                  onViewableItemsChanged={onViewRef.current}
+                  viewabilityConfig={viewConfigRef.current}
+                  pagingEnabled={false}
+                />
+
+                <View className="flex-row items-center justify-between px-4 mt-6">
+                  <TouchableOpacity
+                    onPress={prevSlide}
+                    activeOpacity={0.7}
+                    disabled={current === 0}
+                  >
+                    <Ionicons
+                      name="chevron-back-outline"
+                      size={24}
+                      color={current === 0 ? '#555' : '#fff'}
+                    />
+                  </TouchableOpacity>
+
+                  <View className="flex-row gap-3 items-center">
+                    {slides.map((_, index) => (
+                      <Animated.View
+                        key={index}
+                        style={{
+                          width: index === current ? 16 : 8,
+                          height: 8,
+                          borderRadius: 8,
+                          backgroundColor: index === current ? '#FFD939' : '#666',
+                          transition: 'width 0.25s ease-in-out',
+                        }}
+                      />
+                    ))}
+                  </View>
+
+                  <TouchableOpacity
+                    onPress={nextSlide}
+                    activeOpacity={0.7}
+                    disabled={current === slides.length - 1}
+                  >
+                    <Ionicons
+                      name="chevron-forward-outline"
+                      size={24}
+                      color={current === slides.length - 1 ? '#555' : '#fff'}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Support Items List */}
+              <View className="mt-8 px-2 flex-1">
+                {items.map((item) => (
+                  <View key={item.id} className="mb-4">
+                    <TouchableOpacity 
+                      onPress={() => toggleItem(item.id)}
+                      className="flex-row justify-between items-center py-3 px-4 bg-neutral700 rounded-lg"
+                    >
+                      <Text 
+                        className={`font-sora-bold text-sm ${
+                          item.expanded ? 'text-white' : 'text-white'
+                        }`}
+                      >
+                        {item.title}
+                      </Text>
+                      <AntDesign 
+                        name={item.expanded ? 'arrow-down' : 'arrow-right'} 
+                        size={16} 
+                        color='#ffffff'
+                      />
+                    </TouchableOpacity>
+                    {item.expanded && (
+                      <View className="mt-5 px-4">
+                        <TouchableOpacity 
+                          onPress={() => navigateToItem(item.route)}
+                          className="py-3 px-3 bg-[#222222] rounded-lg"
+                        >
+                          <Text className="text-neutral100 font-space-mono text-xs mb-2">
+                            {item.content.heading}
+                          </Text>
+
+                          <Text className="flex-wrap text-white font-sora text-sm leading-relaxed ">
+                            <Text className="font-sora text-sm text-main">
+                              {item.content.firstWord + ' '}
+                            </Text>
+                            {item.content.text}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+        </View>
 
         {/* Carousel Item Modal */}
         <Modal

@@ -298,7 +298,7 @@ export default function Index() {
             <Text className="text-white font-sora-semibold text-lg text-center mb-4">
               No wallets selected yet
             </Text>
-            <Text className="text-neutral400 font-sora text-sm text-center">
+            <Text className="text-neutral200 font-sora text-sm text-center">
               Add wallets to get started
             </Text>
           </View>
@@ -384,7 +384,7 @@ export default function Index() {
         </View>
       </Modal>
 
-      <View className="bg-[#222222] px-4 pt-8 pb-16 rounded-3xl space-y-4 mt-10 mx-3">
+      <View className="bg-[#222222] px-4 pt-8 pb-8 mb-16 rounded-3xl mt-10">
         <View className="items-center mb-4">
           <Text className="text-neutral200 font-sora-semibold text-sm">Connect</Text>
         </View>

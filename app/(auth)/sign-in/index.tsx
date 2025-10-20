@@ -116,7 +116,7 @@ export default function PhoneEntryScreen() {
 
   const handleNOK = () => {
     console.log('Login as NOK');
-    router.push('/sign-in-nok');
+    //router.push('/sign-in-nok');
   };
 
   const showError = isTouched && !isValid && phoneNumber.length > 0;
