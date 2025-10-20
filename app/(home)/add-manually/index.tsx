@@ -8,7 +8,6 @@ import {
   Alert, // Added Alert for better user feedback
   Animated,
   Easing,
-  Image,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -17,10 +16,10 @@ import {
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View,
+  View
 } from 'react-native';
-import BackButton from '../../../assets/images/back.png';
 // Import your Zustand stores
+import { BackIcon } from '@/assets/images/svg';
 import { usePhoneStore } from '@/store/usePhoneStore';
 import { usePinStore } from '@/store/usePinStore';
 
@@ -202,7 +201,7 @@ export default function AddManually() {
       await addWallets(selectedWallets, phoneNumber, pinToUse);
       console.log('AddManually: Wallets added successfully via storage utility.');
       router.push({
-        pathname: '/(home)/add-to-wallet',
+        pathname: '/(home)',
         // If you need to pass data back to add-to-wallet, uncomment and adjust this:
         // params: { newWallets: JSON.stringify(selectedWallets) }
       });
@@ -244,7 +243,6 @@ export default function AddManually() {
   });
 
   const getScrollViewContentPaddingTop = () => {
-    // Adjust base padding to account for the animated search bar position and selected tags
     let basePadding = 0; // Start with 0 as the search bar position is absolute below header
     if (isSearching) {
       basePadding = 120; // Enough space for the search bar when it's expanded
@@ -260,27 +258,24 @@ export default function AddManually() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-neutral800"
+      className="flex-1"
     >
       <TouchableWithoutFeedback onPress={handleOutsidePress}>
         <View className="flex-1 px-5">
           {/* Header Area (Back button and Animated Search Input) */}
-          <View className="relative flex-row items-center justify-start pt-12 pb-4 h-16">
-            <TouchableOpacity onPress={() => router.back()}>
-              <Image source={BackButton} className="w-10 h-10" resizeMode="contain" />
-            </TouchableOpacity>
+          <View className="">
+            <View className="flex-row items-center justify-start mb-4">
+              <TouchableOpacity onPress={() => router.back()}>
+                <BackIcon width={40} height={40} />
+              </TouchableOpacity>
+            </View>
 
             <Animated.View
               style={{
-                position: 'absolute',
                 opacity: searchBarOpacity,
                 transform: [{ translateY: searchBarTranslateY }],
-                top: 100, // Position it below the back button area
-                left: 0,
-                right: 0,
-                zIndex: 10, // Ensure search bar stays above other content
               }}
-              className="bg-mainBlack rounded-xl h-12 flex-row items-center px-4"
+              className="bg-searchBg rounded-xl h-12 flex-row items-center px-4 mb-6"
             >
               <Octicons name="search" size={16} color="#B8B8B8" />
               <TextInput
@@ -295,11 +290,12 @@ export default function AddManually() {
             </Animated.View>
           </View>
 
+
           {/* Main Content Area */}
           <View className={`flex-1 ${!isSearching ? 'justify-end' : ''}`}>
             {/* Selected Wallets - Visible only when searching and if any wallets are selected */}
             {isSearching && selectedWallets.length > 0 && (
-              <View className="flex-row flex-wrap mb-3 mt-28"> {/* Adjusted mt-28 to ensure it's below the search bar */}
+              <View className="flex-row flex-wrap mb-3 mt-"> {/* Adjusted mt-28 to ensure it's below the search bar */}
                 {selectedWallets.map(wallet => (
                   <View key={wallet.id} className="bg-primary100 flex-row items-center rounded-full px-3 py-1 mr-2 mb-2">
                     <Text className="text-black font-sora text-xs mr-2">{wallet.name}</Text>
@@ -311,10 +307,8 @@ export default function AddManually() {
               </View>
             )}
 
-            {/* Conditional Content: Search Results OR Initial State/Popular Searches */}
             {isSearching ? (
               <>
-                {/* ScrollView for both filtered results and popular searches when searching */}
                 <ScrollView
                   className="flex-1"
                   keyboardShouldPersistTaps="handled"

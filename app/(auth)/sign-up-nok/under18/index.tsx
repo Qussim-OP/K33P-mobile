@@ -66,13 +66,13 @@ export default function NokPhoneEntryScreen() {
 
   const handleProceed = () => {
     console.log('Entered NOK phone number:', nokFormattedNumber);
-    router.push('/sign-up-nok/otp');
+    router.push('/(auth)/sign-up-nok/under18/otp');
   };
 
   const showError = isTouched && !isValid && nokPhoneNumber.length > 0;
 
   return (
-    <View className="flex-1 bg-neutral800 px-5 pt-12">
+    <View className="flex-1 px-5">
       {/* Header */}
       <View className="relative flex-row items-center justify-start mb-12">
         <TouchableOpacity className="z-10" onPress={() => router.back()}>

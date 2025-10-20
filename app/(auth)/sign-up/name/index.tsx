@@ -84,7 +84,7 @@ export default function NameScreen() {
           keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
           className="flex-1"
         >
-          <View className="flex-1 px-5 pt-12">
+          <View className="flex-1 px-5">
             {/* Header */}
             <View className="relative flex-row items-center justify-start mb-12">
               <TouchableOpacity className="z-10" onPress={() => router.back()}>

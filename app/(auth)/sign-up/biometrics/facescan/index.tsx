@@ -48,7 +48,7 @@ export default function FaceScan() {
 
   return (
     <TouchableWithoutFeedback onPress={() => setShowKeypad(false)}>
-      <View className="flex-1 bg-neutral800 px-5 pt-12">
+      <View className="flex-1 px-5">
         {/* Header */}
         <View className="relative flex-row items-center justify-start mb-4">
           <TouchableOpacity className="z-10" onPress={() => router.back()}>

@@ -1,3 +1,4 @@
+import { BackIcon } from '@/assets/images/svg';
 import Button from '@/components/Button';
 import { usePhoneStore } from '@/store/usePhoneStore';
 import { usePinStore } from '@/store/usePinStore';
@@ -6,7 +7,6 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Clipboard, Image, Modal, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import InputEndIcon from '../../../../assets/images//paste.png';
-import BackButton from '../../../../assets/images/back.png';
 import CopyIcon from '../../../../assets/images/Copy.png';
 import DidCreationFailed from '../../../../assets/images/did-failed.png';
 import ProgressFailed from '../../../../assets/images/did-progress-failed.png';
@@ -375,10 +375,10 @@ export default function DidScreen() {
   };
 
   return (
-    <View className="flex-1 bg-mainBlack px-5 pt-12">
+    <View className="flex-1  px-5">
       <View className="relative flex-row items-center justify-start mb-12">
         <TouchableOpacity className="z-10" onPress={() => router.back()}>
-          <Image source={BackButton} className="w-10 h-10" resizeMode="contain" />
+        <BackIcon width={40} height={40} /> 
         </TouchableOpacity>
       </View>
 

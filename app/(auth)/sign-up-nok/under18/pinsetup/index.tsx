@@ -1,16 +1,15 @@
+import { BackIcon, Lock_2, Lock_3 } from '@/assets/images/svg';
 import Button from '@/components/Button';
 import NumericKeypad from '@/components/Keypad';
 import { usePinStore } from '@/store/usePinStore'; // Import the store
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  Image,
   Text,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View,
+  View
 } from 'react-native';
-import BackButton from '../../../../../assets/images/back.png';
 
 export default function PinSetupScreen() {
   const router = useRouter();
@@ -93,7 +92,7 @@ export default function PinSetupScreen() {
   const handleProceed = () => {
     if (step === 2 && isValid) {
       setStoredPin(pin.join('')); // Save PIN to Zustand store
-      router.push('/sign-up-nok/biometrics/fingerprint'); // Navigate to next screen
+      router.push('/(auth)/sign-up-nok/under18/biometric'); // Navigate to next screen
     }
   };
 
@@ -111,18 +110,32 @@ export default function PinSetupScreen() {
 
   return (
     <TouchableWithoutFeedback onPress={() => setShowKeypad(false)}>
-      <View className="flex-1 bg-neutral800 px-5 pt-12">
+      <View className="flex-1  px-5">
         {/* Header */}
         <View className="relative flex-row items-center justify-start mb-12">
-          <TouchableOpacity className="z-10" onPress={() => router.back()}>
-            <Image source={BackButton} className="w-10 h-10" resizeMode="contain" />
-          </TouchableOpacity>
-          {/* <Image
-            source={isValid ? LockIcon3 : LockIcon2}
-            className="absolute left-1/2 transform -translate-x-1/2 w-[88px] h-[88px]"
-            resizeMode="contain"
-          /> */}
-        </View>
+        <TouchableOpacity className="z-10" onPress={() => router.back()}>
+          <BackIcon width={40} height={40} />
+
+        </TouchableOpacity>
+        {isValid ? (
+  <Lock_3 
+  style={{
+    position: 'absolute',
+    left: '50%',
+    transform: [{ translateX: '-50%' }]
+  }}
+  />
+) : (
+  <Lock_2 
+  style={{
+    position: 'absolute',
+    left: '50%',
+    transform: [{ translateX: '-50%' }]
+  }}/>
+)}
+    
+      </View>
+
 
         {/* Content */}
         <View className="flex-1">

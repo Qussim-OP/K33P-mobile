@@ -74,7 +74,7 @@ export default function PhoneEntryScreen() {
   const showError = isTouched && !isValid && phoneNumber.length > 0;
 
   return (
-    <View className="flex-1 bg-neutral800 px-5 pt-12">
+    <View className="flex-1 px-5">
       {/* Header */}
       <View className="relative flex-row items-center justify-start mb-12">
         <TouchableOpacity className="z-10" onPress={() => router.back()}>

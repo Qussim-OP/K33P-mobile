@@ -136,15 +136,15 @@ export default function Biometrics() {
   const closeModal = () => setShowModal(false);
 
   return (
-    <View className="flex-1 bg-neutral800 px-5 pt-14">
+    <View className="flex-1 px-5 mt-5">
       {/* Header */}
       <View className="relative flex-row items-center justify-start mb-16">
       <Lock_3 
-style={{
-  position: 'absolute',
-  left: '50%',
-  transform: [{ translateX: '-50%' }]
-}} />
+        style={{
+          position: 'absolute',
+          left: '50%',
+          transform: [{ translateX: '-50%' }]
+        }} />
       </View>
 
       {/* Content */}
@@ -195,6 +195,7 @@ style={{
         <Button
           text={hasCompletedMethod ? "Do Later" : "Proceed"}
           onPress={() => hasCompletedMethod ? setShowModal(true) : router.push('/sign-up/pinsetup')}
+          isDisabled={!hasCompletedMethod}
         />
       </View>
 

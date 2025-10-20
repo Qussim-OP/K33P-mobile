@@ -2,17 +2,17 @@ import { AntDesign, Feather, Ionicons, MaterialIcons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    Clipboard,
-    Image,
-    Modal,
-    Pressable,
-    Text,
-    TouchableOpacity,
-    View
+  Clipboard,
+  Image,
+  Modal,
+  Pressable,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
+import { BackIcon } from '@/assets/images/svg';
 import Button from '@/components/Button';
-import BackIcon from '../../../../assets/images/back.png';
 import BankIcon from '../../../../assets/images/bank.png';
 import CardIcon from '../../../../assets/images/card.png';
 
@@ -54,12 +54,17 @@ export default function Bank() {
   };
 
   return (
-    <View className="flex-1 bg-neutral800 p-4">
+    <View className="flex-1 px-4">
       {/* Header */}
-      <View className="flex-row items-center justify-between mb-6 mt-6">
-        <TouchableOpacity onPress={() => router.back()}>
-          <Image source={BackIcon} className="w-10 h-10" resizeMode="contain" />
-        </TouchableOpacity>
+      <View className="flex-row items-center justify-between mb-6">
+      <TouchableOpacity onPress={() => router.back()} className="z-10">
+          <BackIcon
+              style={{
+                left: '50%',
+                transform: [{ translateX: '-50%' }],
+              }}
+            />
+          </TouchableOpacity>
         <Text className="text-white font-sora-bold text-sm">Bank Transfer</Text>
         <View className="w-10" />
       </View>

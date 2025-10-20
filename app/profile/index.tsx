@@ -1,4 +1,4 @@
-import { AntDesign, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { AntDesign, Feather, Fontisto, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -11,11 +11,9 @@ import {
   View
 } from 'react-native';
 
+import { BackIcon, CLOSE, SearchIcon } from '@/assets/images/svg';
 import Button from '@/components/Button';
-import TopLeft from '../../assets/images/back.png';
-import CloseIcon from '../../assets/images/close.png';
 import EditIcon from '../../assets/images/edit.png';
-import TopRight from '../../assets/images/searchcircle.png';
 import User from '../../assets/images/userprofile.png';
 
 interface ProfileItems {
@@ -100,27 +98,47 @@ export default function Profile() {
         Keyboard.dismiss();
       }
     }}>
-      <View className="flex-1 bg-neutral800">
+      <View className="flex-1 ">
         {/* Header - Fixed Position */}
-        <View className="my-4 pb-4">
-          <TouchableOpacity onPress={() => router.back()} className="absolute top-6 left-4 z-10">
-            <Image source={TopLeft} className="w-10 h-10" resizeMode="contain" />
+        <View className="mb-4 pb-4 ">
+          <TouchableOpacity onPress={() => router.back()} className="absolute left-4 z-10">
+          <BackIcon
+              style={{
+                left: '50%',
+                transform: [{ translateX: '-50%' }],
+              }}
+            />
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={toggleSearch} className="absolute top-6 right-4 mt-1">
-            <Image 
-              source={isSearching ? CloseIcon : TopRight} 
-              className="w-10 h-10" 
-              resizeMode="contain" 
+
+          <TouchableOpacity 
+            onPress={toggleSearch}
+            className="absolute right-4"
+          >
+            {
+              isSearching ? 
+              <CLOSE
+              style={{
+                left: '50%',
+                transform: [{ translateX: '-50%' }],
+              }}
+            /> : 
+            <SearchIcon
+              style={{
+                left: '50%',
+                transform: [{ translateX: '-50%' }],
+              }}
             />
+            }
+            
           </TouchableOpacity>
         </View>
 
         {/* Search Bar - Only shown when searching */}
         {isSearching && (
-          <View className="px-4 mb-4 mt-16">
-            <View className="flex-row items-center bg-mainBlack rounded-xl px-3 py-1">
-              <AntDesign name="search" size={16} color="#B0B0B0" />
+          <View className="px-4 mb-4 mt-12">
+            <View className="flex-row items-center bg-searchBg rounded-xl px-3 py-1">
+              <Fontisto name="search" size={16} color="#B0B0B0" />
               <TextInput
                 className="flex-1 ml-2 text-white font-sora text-sm"
                 placeholder="Search settings..."
@@ -187,7 +205,7 @@ export default function Profile() {
                   </Text>
                   <AntDesign 
                     name="arrow-right" 
-                    size={12} 
+                    size={16} 
                     color="#ffffff" 
                   />
                 </TouchableOpacity>
@@ -198,7 +216,7 @@ export default function Profile() {
 
         {/* Search Results - Only shown when searching and has query */}
         {isSearching && searchQuery && (
-          <View className="mt-2 px-2 flex-1">
+          <View className="px-2 flex-1">
             {filteredItems.length > 0 ? (
               filteredItems.map((item) => (
                 <TouchableOpacity 
@@ -210,8 +228,8 @@ export default function Profile() {
                     {item.title}
                   </Text>
                   <AntDesign 
-                    name="arrowright" 
-                    size={20} 
+                    name="arrow-right" 
+                    size={16} 
                     color="#ffffff" 
                   />
                 </TouchableOpacity>

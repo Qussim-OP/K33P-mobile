@@ -9,7 +9,7 @@ import {
   View
 } from 'react-native';
 
-import BackIcon from '../../../assets/images/back.png';
+import { BackIcon } from '@/assets/images/svg';
 import NokImage from '../../../assets/images/nok.png';
 import Button from '../../../components/Button'; // Adjust import path as needed
 
@@ -30,11 +30,16 @@ export default function Bank() {
   };
 
   return (
-    <View className="flex-1 bg-neutral800 p-4">
+    <View className="flex-1 px-4">
       {/* Header */}
-      <View className="flex-row items-center justify-between mb-6 mt-6">
+      <View className="flex-row items-center justify-between">
         <TouchableOpacity onPress={() => router.back()}>
-          <Image source={BackIcon} className="w-10 h-10" resizeMode="contain" />
+        <BackIcon
+            style={{
+              left: '50%',
+              transform: [{ translateX: '-50%' }],
+            }}
+          />
         </TouchableOpacity>
         <Text className="text-white font-sora-bold text-sm">NOK Setup</Text>
         <View className="w-10" />

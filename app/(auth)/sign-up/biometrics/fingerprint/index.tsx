@@ -1,11 +1,10 @@
+import { BackIcon, Lock_3 } from '@/assets/images/svg';
 import { useSetFingerprintComplete } from '@/store/useAuthStore';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Image, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
-import BackButton from '../../../../../assets/images/back.png';
 import CenterImage from '../../../../../assets/images/fingerprint.png';
-import LockIcon from '../../../../../assets/images/lock-3.png';
 
 export default function Fingerprint() {
   const router = useRouter();
@@ -87,16 +86,17 @@ export default function Fingerprint() {
 
   return (
     <TouchableWithoutFeedback>
-      <View className="flex-1 bg-neutral800 px-5 pt-12">
+      <View className="flex-1 px-5 ">
         <View className="relative flex-row items-center justify-start mb-4">
           <TouchableOpacity className="z-10" onPress={() => router.back()}>
-            <Image source={BackButton} className="w-10 h-10" resizeMode="contain" />
-          </TouchableOpacity>
-          <Image
-            source={LockIcon}
-            className="absolute left-1/2 transform -translate-x-1/2 w-[88px] h-[16px]"
-            resizeMode="contain"
-          />
+          <BackIcon width={40} height={40} /> 
+           </TouchableOpacity>
+           <Lock_3 
+        style={{
+          position: 'absolute',
+          left: '50%',
+          transform: [{ translateX: '-50%' }]
+        }} />
         </View>
 
         <View className="flex-1 items-center justify-center">
@@ -111,12 +111,14 @@ export default function Fingerprint() {
               style={{ opacity: isAuthenticating ? 0.6 : 1 }}
             />
           </TouchableOpacity>
-        </View>
-        <View className="mb-8 px-2">
-          <Text className="text-white font-sora text-sm text-center mb-4" numberOfLines={3}>
+          
+          <View className="mb-8 px-2">
+          <Text className="text-white font-sora text-sm text-center mt-5" numberOfLines={3}>
             Touch the fingerprint icon to verify your identity
           </Text>
         </View>
+        </View>
+       
       </View>
     </TouchableWithoutFeedback>
   );

@@ -1,17 +1,10 @@
+import { BackIcon, SIGN_IN_1, SIGN_IN_2 } from '@/assets/images/svg';
 import Button from '@/components/Button';
 import NumericKeypad from '@/components/Keypad';
 import { usePinStore } from '@/store/usePinStore';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import {
-  Image,
-  Text,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
-} from 'react-native';
-import BackButton from '../../../../assets/images/back.png';
-import LockIcon from '../../../../assets/images/loginlock-2.png';
+import { Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 
 export default function PinEntryScreen() {
   const router = useRouter();
@@ -21,6 +14,7 @@ export default function PinEntryScreen() {
   const [isError, setIsError] = useState(false);
   const [showKeypad, setShowKeypad] = useState(true);
   const [isSettingUp, setIsSettingUp] = useState(!hasPin);
+  const [isUnlocked, setIsUnlocked] = useState(false);
 
   const handleKeyPress = (num: string) => {
     if (currentIndex < 4) {
@@ -50,17 +44,17 @@ export default function PinEntryScreen() {
 
   const handleSubmit = () => {
     const enteredPin = pin.join('');
-
     if (isSettingUp) {
-      // First time setup - confirm PIN
       if (pin.length === 4) {
         usePinStore.getState().setPin(enteredPin);
         router.push('/sign-in/fingerprint');
       }
     } else {
-      // Normal PIN entry
       if (enteredPin === storedPin) {
-        router.push('/sign-in/fingerprint');
+        setIsUnlocked(true);
+        setTimeout(() => {
+          router.push('/sign-in/fingerprint');
+        }, 500);
       } else {
         setIsError(true);
         setTimeout(() => {
@@ -79,33 +73,42 @@ export default function PinEntryScreen() {
 
   return (
     <TouchableWithoutFeedback onPress={() => setShowKeypad(false)}>
-      <View className="flex-1 bg-neutral800 px-5 pt-12">
-        {/* Header */}
+      <View className="flex-1 px-5">
         <View className="relative flex-row items-center justify-start mb-12">
-          <TouchableOpacity onPress={() => router.back()}>
-            <Image source={BackButton} className="w-10 h-10" resizeMode="contain" />
+          <TouchableOpacity className="z-10" onPress={() => router.back()}>
+            <BackIcon width={40} height={40} />
           </TouchableOpacity>
-          <Image
-            source={LockIcon}
-            className="absolute left-1/2 transform -translate-x-1/2 w-[88px] h-[88px]"
-            resizeMode="contain"
-          />
+          {isUnlocked ? (
+            <SIGN_IN_2
+              style={{
+                position: 'absolute',
+                left: '50%',
+                transform: [{ translateX: '-50%' }],
+              }}
+            />
+          ) : (
+            <SIGN_IN_1
+              style={{
+                position: 'absolute',
+                left: '50%',
+                transform: [{ translateX: '-50%' }],
+              }}
+            />
+          )}
         </View>
 
-        {/* Content */}
         <View className="flex-1">
           <Text className="text-white font-sora-bold text-sm text-center mb-1">
             {isSettingUp ? 'Create your PIN' : 'Enter your PIN'}
           </Text>
           <Text className="text-sm font-sora text-center mb-6 px-8 py-2 text-neutral200">
-            {isError 
-              ? 'Incorrect PIN, try again' 
-              : isSettingUp 
-                ? 'Create a 4-digit PIN' 
-                : 'Enter your 4-digit PIN'}
+            {isError
+              ? 'Incorrect PIN, try again'
+              : isSettingUp
+              ? 'Create a 4-digit PIN'
+              : 'Enter your 4-digit PIN'}
           </Text>
 
-          {/* PIN Circles */}
           <View className="flex-row justify-center mb-2">
             {pin.map((digit, index) => (
               <TouchableOpacity
@@ -113,7 +116,9 @@ export default function PinEntryScreen() {
                 activeOpacity={1}
                 onPress={() => focusPinCircle(index)}
                 className={`w-6 h-6 mx-3 rounded-full border items-center justify-center ${
-                  isError
+                  isUnlocked
+                    ? 'bg-success500 border-green-500'
+                    : isError
                     ? 'border-error500'
                     : digit !== ''
                     ? 'bg-neutral200 border-neutral200'
@@ -124,7 +129,6 @@ export default function PinEntryScreen() {
           </View>
         </View>
 
-        {/* Continue Button */}
         <View className={`pb-16 ${showKeypad ? 'mb-72' : ''}`}>
           <Button
             text={isSettingUp ? 'Set PIN' : 'Continue'}
@@ -133,14 +137,12 @@ export default function PinEntryScreen() {
           />
         </View>
 
-        {/* Keypad Toggle Area */}
         {showKeypad && (
           <TouchableWithoutFeedback onPress={() => setShowKeypad(false)}>
             <View className="absolute top-0 left-0 right-0 bottom-80 bg-transparent" />
           </TouchableWithoutFeedback>
         )}
 
-        {/* Numeric Keypad */}
         <NumericKeypad
           onKeyPress={handleKeyPress}
           onBackspace={handleBackspace}

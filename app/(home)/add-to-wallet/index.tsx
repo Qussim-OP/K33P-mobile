@@ -1,3 +1,4 @@
+import { FOLDER, INFO, PROFILE } from '@/assets/images/svg';
 import Button from '@/components/Button';
 import { usePhoneStore } from '@/store/usePhoneStore';
 import { usePinStore } from '@/store/usePinStore';
@@ -6,7 +7,6 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
-  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -14,9 +14,6 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import FolderIcon from '../../../assets/images/folder.png';
-import TopLeft from '../../../assets/images/info.png';
-import TopRight from '../../../assets/images/profile.png';
 
 interface Wallet {
   id: string;
@@ -241,16 +238,27 @@ export default function Index() {
   }
 
   return (
-    <View className="flex-1 bg-neutral800 px-4 pt-6 pb-12 relative">
-      <TouchableOpacity onPress={() => router.push('/support')} className="absolute top-10 left-4">
-        <Image source={TopLeft} className="w-10 h-10" resizeMode="contain" />
+    <View className="flex-1 b px-4 pt-6 relative">
+       <TouchableOpacity onPress={() => router.push('/support')} className="absolute left-4">
+      <INFO
+              style={{
+                left: '50%',
+                transform: [{ translateX: '-50%' }],
+              }}
+            />
       </TouchableOpacity>
       
-      <TouchableOpacity onPress={() => router.push('/profile')} className="absolute top-10 right-4">
-        <Image source={TopRight} className="w-10 h-10" resizeMode="contain" />
-      </TouchableOpacity>
+      <TouchableOpacity onPress={() => router.push('/profile')} className="absolute right-4">
+      <PROFILE
+              style={{
+                left: '50%',
+                transform: [{ translateX: '-50%' }],
+              }}
+            />      
+        </TouchableOpacity>
 
-      <View style={{ marginTop: 80 }}>
+
+      <View style={{ marginTop: 40 }}>
         <View className='px-2 mb-4'>
           <Text className='text-white font-sora mb-2'>Hello Kara</Text>
           <Text className='text-[#B8B8B8] font-space-mono text-xs'>
@@ -271,7 +279,7 @@ export default function Index() {
                     className="items-center w-1/2 px-2"
                   >
                     <View className="items-center">
-                      <Image source={FolderIcon} resizeMode="contain" />
+                    <FOLDER />
                       <Text className="text-white font-sora text-base text-center mb-1 mt-5">
                         {wallet.keyType ? `${wallet.keyType} Keys` : 'Add Key Phrases'}
                       </Text>
@@ -376,7 +384,7 @@ export default function Index() {
         </View>
       </Modal>
 
-      <View className="bg-mainBlack px-4 py-8 rounded-3xl space-y-4">
+      <View className="bg-[#222222] px-4 pt-8 pb-16 rounded-3xl space-y-4 mt-10 mx-3">
         <View className="items-center mb-4">
           <Text className="text-neutral200 font-sora-semibold text-sm">Connect</Text>
         </View>

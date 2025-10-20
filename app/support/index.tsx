@@ -1,9 +1,10 @@
 import Button from '@/components/Button';
-import { AntDesign } from '@expo/vector-icons';
+import { AntDesign, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Dimensions,
   FlatList,
   Image,
@@ -20,13 +21,10 @@ import {
 } from 'react-native';
 import SearchIcon from '../../assets/images/search.png'; // Import your search icon image
 
-import TopLeft from '../../assets/images/back.png';
+import { BackIcon, PHONE } from '@/assets/images/svg';
 import SlideImg1 from '../../assets/images/carouselImage.png';
 import SlideImg3 from '../../assets/images/carouselImage2.png';
 import SlideImg2 from '../../assets/images/carouselImage3.png';
-import ArrowLeft from '../../assets/images/left.png';
-import TopRight from '../../assets/images/Phone.png';
-import ArrowRight from '../../assets/images/right.png';
 import slideImage2 from '../../assets/images/slide1.png';
 import slideImage1 from '../../assets/images/slide2.png';
 import slideImage3 from '../../assets/images/slide3.png';
@@ -251,14 +249,14 @@ export default function SupportScreen() {
     setSelectedSlide(null);
   }, []);
 
-  const renderItem = useCallback(({ item, index }: { item: Slide; index: number }) => (
+  const renderItem = useCallback(({ item, index }) => (
     <TouchableOpacity
       activeOpacity={0.8}
       onPress={() => openCarouselModal(item)}
       style={{
         width: ITEM_WIDTH,
         marginRight: ITEM_SPACING,
-        backgroundColor: '#121212',
+        backgroundColor: '#222222',
         borderRadius: 12,
         padding: 8,
         flexDirection: 'row',
@@ -295,30 +293,41 @@ export default function SupportScreen() {
     </TouchableOpacity>
   ), [current, openCarouselModal]);
 
+
   return (
     <TouchableWithoutFeedback onPress={() => {
       if (isKeyboardVisible) {
         Keyboard.dismiss();
       }
     }}>
-      <View className="flex-1 bg-neutral800">
+      <View className="flex-1">
         {/* Header - Fixed Position */}
-        <View className="my-4 pb-4 ">
-          <TouchableOpacity onPress={() => router.back()} className="absolute top-6 left-4 z-10">
-            <Image source={TopLeft} className="w-10 h-10" resizeMode="contain" />
+        <View className="mb-4 pb-4 ">
+          <TouchableOpacity onPress={() => router.back()} className="absolute left-4 z-10">
+          <BackIcon
+              style={{
+                left: '50%',
+                transform: [{ translateX: '-50%' }],
+              }}
+            />
           </TouchableOpacity>
 
-          <View className="items-center justify-center mt-8">
-            <Text className='text-sm text-white font-sora-bold '>
+          <View className="items-center justify-center">
+            <Text className='text-sm text-white font-sora-bold mt-3'>
               Support Center
             </Text>
           </View>
 
           <TouchableOpacity 
             onPress={openModal}
-            className="absolute top-6 right-4 mt-1"
+            className="absolute right-4 mt-2"
           >
-            <Image source={TopRight} className="w-6 h-6" resizeMode="contain" />
+            <PHONE
+              style={{
+                left: '50%',
+                transform: [{ translateX: '-50%' }],
+              }}
+            />
           </TouchableOpacity>
         </View>
 
@@ -328,9 +337,9 @@ export default function SupportScreen() {
           showsVerticalScrollIndicator={false}
           style={{ marginVertical: 1 }} 
         >
-          <View className="px-4 mb-8">
+          <View className="px-4 mb-8 ">
             {/* Search Bar */}
-            <View className="flex-row items-center bg-mainBlack rounded-xl px-3 py-1">
+            <View className="flex-row items-center bg-searchBg rounded-xl px-3 py-1">
               <Image 
                 source={SearchIcon} 
                 className="w-5 h-5 mr-2" 
@@ -351,53 +360,67 @@ export default function SupportScreen() {
           {/* Carousel */}
           <View >
             <FlatList
-              ref={flatListRef}
-              data={slides}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              keyExtractor={(item) => item.id.toString()}
-              renderItem={renderItem}
-              snapToInterval={ITEM_WIDTH + ITEM_SPACING}
-              decelerationRate="fast"
-              snapToAlignment="start"
-              initialScrollIndex={0}
-              getItemLayout={(data, index) => ({
-                length: ITEM_WIDTH + ITEM_SPACING,
-                offset: (ITEM_WIDTH + ITEM_SPACING) * index,
-                index,
-              })}
-              contentContainerStyle={{ paddingLeft: 20, paddingRight: ITEM_SPACING }}
-              onViewableItemsChanged={onViewRef.current}
-              viewabilityConfig={viewConfigRef.current}
-              pagingEnabled={false}
-            />
+            ref={flatListRef}
+            data={slides}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={renderItem}
+            snapToInterval={ITEM_WIDTH + ITEM_SPACING}
+            decelerationRate="fast"
+            snapToAlignment="start"
+            initialScrollIndex={0}
+            getItemLayout={(data, index) => ({
+              length: ITEM_WIDTH + ITEM_SPACING,
+              offset: (ITEM_WIDTH + ITEM_SPACING) * index,
+              index,
+            })}
+            contentContainerStyle={{ paddingLeft: 20, paddingRight: ITEM_SPACING }}
+            onViewableItemsChanged={onViewRef.current}
+            viewabilityConfig={viewConfigRef.current}
+            pagingEnabled={false}
+          />
 
-            <View className="flex-row items-center justify-between px-6 mt-6">
-              <TouchableOpacity onPress={prevSlide}>
-                <Image 
-                  source={ArrowLeft} 
-                  style={{ opacity: current === 0 ? 0.5 : 1 }}
+          <View className="flex-row items-center justify-between px-4 mt-6">
+            <TouchableOpacity
+              onPress={prevSlide}
+              activeOpacity={0.7}
+              disabled={current === 0}
+            >
+              <Ionicons
+                name="chevron-back-outline"
+                size={24}
+                color={current === 0 ? '#555' : '#fff'}
+              />
+            </TouchableOpacity>
+
+            <View className="flex-row gap-3 items-center">
+              {slides.map((_, index) => (
+                <Animated.View
+                  key={index}
+                  style={{
+                    width: index === current ? 16 : 8,
+                    height: 8,
+                    borderRadius: 8,
+                    backgroundColor: index === current ? '#FFD939' : '#666',
+                    transition: 'width 0.25s ease-in-out',
+                  }}
                 />
-              </TouchableOpacity>
-
-              <View className="flex-row gap-3 items-center ">
-                {slides.map((_, index) => (
-                  <View
-                    key={index}
-                    className={`rounded-full ${
-                      index === current ? 'bg-main w-4 h-2' : 'bg-neutral100 w-2 h-2'
-                    }`}
-                  />
-                ))}
-              </View>
-
-              <TouchableOpacity onPress={nextSlide}>
-                <Image 
-                  source={ArrowRight} 
-                  style={{ opacity: current === slides.length - 1 ? 0.5 : 1 }}
-                />
-              </TouchableOpacity>
+              ))}
             </View>
+
+            <TouchableOpacity
+              onPress={nextSlide}
+              activeOpacity={0.7}
+              disabled={current === slides.length - 1}
+            >
+              <Ionicons
+                name="chevron-forward-outline"
+                size={24}
+                color={current === slides.length - 1 ? '#555' : '#fff'}
+              />
+            </TouchableOpacity>
+          </View>
           </View>
 
           {/* Support Items List */}
@@ -417,15 +440,15 @@ export default function SupportScreen() {
                   </Text>
                   <AntDesign 
                     name={item.expanded ? 'arrow-down' : 'arrow-right'} 
-                    size={14} 
-                    color={item.expanded ? '#ffffff' : ' #ffffff'}
+                    size={16} 
+                    color='#ffffff'
                   />
                 </TouchableOpacity>
                 {item.expanded && (
                   <View className="mt-5 px-4">
                     <TouchableOpacity 
                       onPress={() => navigateToItem(item.route)}
-                      className="py-3 px-3 bg-mainBlack rounded-lg"
+                      className="py-3 px-3 bg-[#222222] rounded-lg"
                     >
                       <Text className="text-neutral100 font-space-mono text-xs mb-2">
                         {item.content.heading}

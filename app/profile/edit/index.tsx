@@ -1,17 +1,17 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    Image,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Image,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
+import { BackIcon } from '@/assets/images/svg';
 import Button from '@/components/Button';
 import { default as Avatar2, default as Avatar2Selected } from '../../../assets/images/avartar2.png';
 import { default as Avatar3, default as Avatar3Selected } from '../../../assets/images/avartar3.png';
-import BackIcon from '../../../assets/images/back.png';
 import { default as Avatar1, default as Avatar1Selected } from '../../../assets/images/userprofile.png';
 
 export default function EditProfile() {
@@ -31,11 +31,11 @@ export default function EditProfile() {
   };
 
   return (
-    <View className="flex-1 bg-neutral800 p-4">
+    <View className="flex-1 px-4">
       {/* Header */}
-      <View className="flex-row items-center justify-between mb-10 mt-6">
+      <View className="flex-row items-center justify-between mb-10">
         <TouchableOpacity onPress={() => router.back()}>
-          <Image source={BackIcon} className="w-10 h-10" resizeMode="contain" />
+        <BackIcon />
         </TouchableOpacity>
         <Text className="text-white font-sora-bold text-sm">Edit Profile</Text>
         <View className="w-10" />

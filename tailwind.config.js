@@ -16,6 +16,7 @@ module.exports = {
         neutral300:'#666666',
         neutral50:'#E8E8E8',
         primary100: '#FFF3C2',
+        searchBg: '#2c2c2c'
       },
       fontFamily: {
         sora: ['Sora-Regular'],

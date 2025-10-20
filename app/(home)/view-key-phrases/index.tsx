@@ -3,23 +3,23 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Clipboard,
-    Image,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Clipboard,
+  Image,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 import { decryptPhrases } from '@/utils/crypto';
-import BackButton from '../../../assets/images/back.png';
 import CopyIcon from '../../../assets/images/Copy.png';
 import EyeClosedIcon from '../../../assets/images/eye-closed.png';
 import EyeIcon from '../../../assets/images/eye.png';
 import ArrowLeft from '../../../assets/images/left.png';
 import ArrowRight from '../../../assets/images/right.png';
+import { BackIcon } from '@/assets/images/svg';
 
 
 
@@ -192,7 +192,7 @@ export default function ViewKey() {
 
   if (loading) {
     return (
-      <View className="flex-1 bg-neutral800 justify-center items-center">
+      <View className="flex-1 justify-center items-center">
         <ActivityIndicator size="large" color="#FFD700" />
         <Text className="text-white mt-4">Loading key phrases...</Text>
       </View>
@@ -201,7 +201,7 @@ export default function ViewKey() {
 
   if (error) {
     return (
-      <View className="flex-1 bg-neutral800 justify-center items-center px-5">
+      <View className="flex-1 justify-center items-center px-5">
         <Text className="text-red-500 text-center text-lg">{error}</Text>
         <TouchableOpacity onPress={() => router.push('/(auth)/sign-in')} className="mt-8 bg-blue-500 p-3 rounded-lg">
           <Text className="text-white">Go Back</Text>
@@ -211,10 +211,10 @@ export default function ViewKey() {
   }
 
   return (
-    <View className="flex-1 bg-neutral800 px-5 pt-12">
+    <View className="flex-1 px-5">
       <View className="relative flex-row items-center justify-start mb-6">
         <TouchableOpacity className="z-10" onPress={() => router.back()}>
-          <Image source={BackButton} className="w-10 h-10" resizeMode="contain" />
+        <BackIcon width={40} height={40} />
         </TouchableOpacity>
       </View>
 

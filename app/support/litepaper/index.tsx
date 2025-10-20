@@ -1,23 +1,22 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Image,
-    Keyboard,
-    Linking,
-    Modal,
-    Pressable,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View
+  ActivityIndicator,
+  Image,
+  Keyboard,
+  Linking,
+  Modal,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View
 } from 'react-native';
 
+import { BackIcon, PHONE } from '@/assets/images/svg';
 import Button from '@/components/Button';
-import TopLeft from '../../../assets/images/back.png';
-import TopRight from '../../../assets/images/Phone.png';
 import SearchIcon from '../../../assets/images/search.png';
 
 const highlightSearch = (text: string, query: string) => {
@@ -113,29 +112,40 @@ export default function Index() {
         Keyboard.dismiss();
       }
     }}>
-      <View className="flex-1 bg-neutral800">
+      <View className="flex-1">
         {/* Header - Fixed Position */}
-        <View className="my-4 pb-4">
-          <TouchableOpacity onPress={() => router.back()} className="absolute top-6 left-4 z-10">
-            <Image source={TopLeft} className="w-10 h-10" resizeMode="contain" />
+        <View className="mb-4 pb-4 ">
+          <TouchableOpacity onPress={() => router.back()} className="absolute left-4 z-10">
+          <BackIcon
+              style={{
+                left: '50%',
+                transform: [{ translateX: '-50%' }],
+              }}
+            />
           </TouchableOpacity>
 
-          <View className="items-center justify-center mt-8">
-            <Text className='text-sm text-white font-sora-bold'>
-              Account 
+          <View className="items-center justify-center">
+            <Text className='text-sm text-white font-sora-bold mt-3'>
+              Lightpaper
             </Text>
           </View>
 
           <TouchableOpacity 
             onPress={openModal}
-            className="absolute top-6 right-4 mt-1"
+            className="absolute right-4 mt-2"
           >
-            <Image source={TopRight} className="w-6 h-6" resizeMode="contain" />
+            <PHONE
+              style={{
+                left: '50%',
+                transform: [{ translateX: '-50%' }],
+              }}
+            />
           </TouchableOpacity>
         </View>
 
+
         <View className="px-4 mb-4 mt-1">
-          <View className="flex-row items-center bg-mainBlack rounded-xl px-3 py-1">
+          <View className="flex-row items-center bg-searchBg rounded-xl px-3 py-1">
             <Image 
               source={SearchIcon} 
               className="w-4 h-4 mr-2" 
@@ -163,7 +173,7 @@ export default function Index() {
           overScrollMode="never"
           decelerationRate="normal"
         >
-          <View className='p-4 rounded-lg mt-4 bg-mainBlack'>
+          <View className='p-4 rounded-lg mt-4 bg-[#222222]'>
             <Text className='text-neutral100 text-xs font-space-mono mb-2'>About K33P Lightpaper</Text>
             {content.map((section) => (
               <View key={section.id} className="mb-6">

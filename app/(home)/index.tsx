@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  Animated,
   Dimensions,
   FlatList,
   Image,
@@ -17,14 +18,12 @@ import { usePhoneStore } from '@/store/usePhoneStore';
 import { usePinStore } from '@/store/usePinStore';
 import { getStoredWallets } from '@/utils/storage';
 
+import { INFO, PROFILE } from '@/assets/images/svg';
 import { useUserStore } from '@/store/userStore';
+import { Ionicons } from '@expo/vector-icons';
 import SlideImg1 from '../../assets/images/carouselImage.png';
 import SlideImg3 from '../../assets/images/carouselImage2.png';
 import SlideImg2 from '../../assets/images/carouselImage3.png';
-import TopLeft from '../../assets/images/info.png';
-import ArrowLeft from '../../assets/images/left.png';
-import TopRight from '../../assets/images/profile.png';
-import ArrowRight from '../../assets/images/right.png';
 import slideImage2 from '../../assets/images/slide1.png';
 import slideImage1 from '../../assets/images/slide2.png';
 import slideImage3 from '../../assets/images/slide3.png';
@@ -176,7 +175,7 @@ export default function Index() {
       style={{
         width: ITEM_WIDTH,
         marginRight: ITEM_SPACING,
-        backgroundColor: '#121212',
+        backgroundColor: '#222222',
         borderRadius: 12,
         padding: 8,
         flexDirection: 'row',
@@ -214,16 +213,26 @@ export default function Index() {
   ), [current, openCarouselModal]);
 
   return (
-    <View className="flex-1 bg-neutral800 justify-between pt-6 pb-12 relative">
-      <TouchableOpacity onPress={() => router.push('/support')} className="absolute top-10 left-4">
-        <Image source={TopLeft} className="w-10 h-10" resizeMode="contain" />
+    <View className="flex-1 justify-between pt-6 pb-12 relative">
+      <TouchableOpacity onPress={() => router.push('/support')} className="absolute left-4">
+      <INFO
+              style={{
+                left: '50%',
+                transform: [{ translateX: '-50%' }],
+              }}
+            />
       </TouchableOpacity>
       
-      <TouchableOpacity onPress={() => router.push('/profile')} className="absolute top-10 right-4">
-        <Image source={TopRight} className="w-10 h-10" resizeMode="contain" />
-      </TouchableOpacity>
+      <TouchableOpacity onPress={() => router.push('/profile')} className="absolute right-4">
+      <PROFILE
+              style={{
+                left: '50%',
+                transform: [{ translateX: '-50%' }],
+              }}
+            />      
+        </TouchableOpacity>
 
-      <View style={{ marginTop: 80 }}>
+      <View style={{ marginTop: 40 }}>
         <View className='px-6 mb-4'>
           <Text className='text-white font-sora mb-2'>Hello {name || 'User'}!</Text>
           <Text className='text-[#B8B8B8] font-space-mono text-xs'>
@@ -254,34 +263,49 @@ export default function Index() {
         />
 
         <View className="flex-row items-center justify-between px-6 mt-6">
-          <TouchableOpacity onPress={prevSlide}>
-            <Image 
-              source={ArrowLeft} 
-              style={{ opacity: current === 0 ? 0.5 : 1 }}
+          <TouchableOpacity
+            onPress={prevSlide}
+            activeOpacity={0.7}
+            disabled={current === 0}
+          >
+            <Ionicons
+              name="chevron-back-outline"
+              size={24}
+              color={current === 0 ? '#555' : '#fff'}
             />
           </TouchableOpacity>
 
           <View className="flex-row gap-3 items-center">
             {slides.map((_, index) => (
-              <View
+              <Animated.View
                 key={index}
-                className={`rounded-full ${
-                  index === current ? 'bg-main w-4 h-2' : 'bg-neutral100 w-2 h-2'
-                }`}
+                style={{
+                  width: index === current ? 16 : 8,
+                  height: 8,
+                  borderRadius: 8,
+                  backgroundColor: index === current ? '#FFD939' : '#666',
+                  transition: 'width 0.25s ease-in-out',
+                }}
               />
             ))}
           </View>
 
-          <TouchableOpacity onPress={nextSlide}>
-            <Image 
-              source={ArrowRight} 
-              style={{ opacity: current === slides.length - 1 ? 0.5 : 1 }}
+          <TouchableOpacity
+            onPress={nextSlide}
+            activeOpacity={0.7}
+            disabled={current === slides.length - 1}
+          >
+            <Ionicons
+              name="chevron-forward-outline"
+              size={24}
+              color={current === slides.length - 1 ? '#555' : '#fff'}
             />
           </TouchableOpacity>
         </View>
+
       </View>
 
-      <View className="bg-mainBlack px-4 py-8 rounded-3xl space-y-4 mt-10 mx-3">
+      <View className="bg-[#222222] px-4 py-8 rounded-3xl space-y-4 mt-10 mx-3">
         <View className="items-center mb-4">
           <Text className="text-neutral200 font-sora-semibold text-sm">Connect</Text>
         </View>

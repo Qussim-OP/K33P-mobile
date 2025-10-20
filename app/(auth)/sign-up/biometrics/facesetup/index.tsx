@@ -1,3 +1,4 @@
+import { Lock_3 } from '@/assets/images/svg';
 import Button from '@/components/Button';
 import { useAuthStore, useLogAuthStore } from '@/store/useAuthStore';
 import { CameraType, CameraView, useCameraPermissions } from 'expo-camera';
@@ -11,7 +12,6 @@ import FaceScan30 from '../../../../../assets/images/facescan-1.png';
 import FaceScan70 from '../../../../../assets/images/facescan-2.png';
 import FaceScan100 from '../../../../../assets/images/facescan-3.png';
 import FaceSuccessImage from '../../../../../assets/images/facesuccess.png';
-import LockIcon from '../../../../../assets/images/lock-3.png';
 import LockSuccessIcon from '../../../../../assets/images/lock-4.png';
 
 const FACE_API_KEY = 'NwacU0nJE5lABdk7_Fs3znyAbgeK3RyV';
@@ -276,13 +276,14 @@ const FaceSetupScreen = () => {
   }
 
   return (
-    <View className="flex-1 bg-neutral800 px-5 pt-12">
+    <View className="flex-1 px-5 mt-5">
       <View className="relative flex-row items-center justify-start mb-4">
-        <Image
-          source={LockIcon}
-          className="absolute left-1/2 transform -translate-x-1/2 w-[88px] h-[16px]"
-          resizeMode="contain"
-        />
+      <Lock_3 
+style={{
+  position: 'absolute',
+  left: '50%',
+  transform: [{ translateX: '-50%' }]
+}} />
       </View>
 
       <View className="items-center my-8" style={styles.cameraContainer}>
@@ -330,7 +331,7 @@ const FaceSetupScreen = () => {
       )}
 
       {errorMessage && (
-        <View className="flex-1 justify-end pb-8">
+        <View className="flex-1 justify-end pb-16">
           <Button
             text="Try Again"
             onPress={resetScan}

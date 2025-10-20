@@ -4,16 +4,16 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import { Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 
-export default function FaceScan() {
+export default function Over() {
   const router = useRouter();
 
   const handleProceed = () => {
-      router.push('/(auth)/sign-up-nok');
+      router.push('/(auth)/sign-up-nok/over18');
   };
 
   return (
     <TouchableWithoutFeedback>
-      <View className="flex-1 bg-neutral800 px-5 pt-12">
+      <View className="flex-1 px-5">
         {/* Header */}
         <View className="relative flex-row items-center justify-start mb-4">
           <TouchableOpacity className="z-10" onPress={() => router.back()}>

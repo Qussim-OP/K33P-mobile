@@ -1,12 +1,10 @@
+import { BackIcon, SIGN_IN_0, SIGN_IN_1 } from '@/assets/images/svg';
 import Button from '@/components/Button';
 import NumericKeypad from '@/components/Keypad';
 import { usePhoneStore } from '@/store/usePhoneStore';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Image, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
-import BackButton from '../../../../assets/images/back.png';
-import LockIcon from '../../../../assets/images/lock-4.png';
-import LockIcon2 from '../../../../assets/images/loginlock-2.png';
+import { Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 
 export default function OTPEntryScreen() {
   const router = useRouter();
@@ -98,18 +96,32 @@ export default function OTPEntryScreen() {
 
   return (
     <TouchableWithoutFeedback onPress={() => setShowKeypad(false)}>
-      <View className="flex-1 bg-neutral800 px-5 pt-12">
+      <View className="flex-1 px-5 ">
         {/* Header */}
         <View className="relative flex-row items-center justify-start mb-12">
           <TouchableOpacity className="z-10" onPress={() => router.back()}>
-            <Image source={BackButton} className="w-10 h-10" resizeMode="contain" />
+            <BackIcon width={40} height={40} />
           </TouchableOpacity>
-          <Image
-            source={isValid ? LockIcon2 : LockIcon}
-            className="absolute left-1/2 transform -translate-x-1/2 w-[88px] h-[88px]"
-            resizeMode="contain"
-          />
+
+          {isValid ? (
+            <SIGN_IN_1
+              style={{
+                position: 'absolute',
+                left: '50%',
+                transform: [{ translateX: '-50%' }],
+              }}
+            />
+          ) : (
+            <SIGN_IN_0
+              style={{
+                position: 'absolute',
+                left: '50%',
+                transform: [{ translateX: '-50%' }],
+              }}
+            />
+          )}
         </View>
+
 
         {/* Content */}
         <View className="flex-1">
