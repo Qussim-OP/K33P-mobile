@@ -6,7 +6,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        main: '#FFD939',
+        main: '#fdd331',
         neutral800: '#0E0E0E',
         neutral100:'#B8B8B8',
         neutral200:'#969696',
@@ -16,6 +16,7 @@ module.exports = {
         neutral300:'#666666',
         neutral50:'#E8E8E8',
         primary100: '#FFF3C2',
+        searchBg: '#2c2c2c'
       },
       fontFamily: {
         sora: ['Sora-Regular'],

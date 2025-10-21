@@ -1,6 +1,6 @@
 import React from 'react';
 import { Image, Text, TouchableOpacity, View } from 'react-native';
-import BackspaceIcon from '../assets/images/backspace.png';
+import BackspaceIcon from '../assets/images/backspace_new.png';
 
 interface NumericKeypadProps {
   onKeyPress: (value: string) => void;
@@ -25,7 +25,7 @@ const NumericKeypad: React.FC<NumericKeypadProps> = ({
   );
 
   return (
-    <View className="absolute bottom-0 left-0 right-0 pb-4 bg-neutral800">
+    <View className="absolute bottom-0 left-0 right-0 pb-4 bg-transparent">
       <View className="w-full">
         {/* Row 1 */}
         <View className="flex-row mb-4">
@@ -50,7 +50,7 @@ const NumericKeypad: React.FC<NumericKeypadProps> = ({
 
         {/* Bottom Row */}
         <View className="flex-row">
-          <View className="flex-1" /> {/* Spacer */}
+          <View className="flex-1" /> 
           <KeyButton value="0" />
           <TouchableOpacity
             className="flex-1 items-center justify-center h-16 mx-1"

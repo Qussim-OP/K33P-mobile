@@ -1,0 +1,127 @@
+{
+    "helpSections": [
+      {
+        "section": "Account",
+        "title": "Account",
+        "content": [
+          {
+            "id": 1,
+            "heading": null,
+            "text": "K33P is a self-custodial digital vault that helps you securely store and recover your wallet seed phrases. It uses biometric authentication, account decentralized identification (DID), and encrypted off-chain storage Iagon to ensure that only you can access your vault, even if your device is lost or stolen. K33P is privacy-first, user-friendly, and built on Cardano's secure blockchain infrastructure. No one, not even K33P, can view the content of your vault."
+          },
+          {
+            "id": 2,
+            "heading": "How do I create a K33P account?",
+            "text": "Creating a K33P account is simple. Just download the app, register with your phone number, and complete three layers of authentication: a passkey (PIN), Face ID, and fingerprint. These will be used to securely access your vault every time you sign in."
+          },
+          {
+            "id": 3,
+            "heading": "Is K33P free to use?",
+            "text": "Yes. K33P does not charge any setup fees. You'll only pay a small Cardano network fee (~$0.17) and a refundable 2 ADA collateral to complete on-chain account identity verification."
+          },
+          {
+            "id": 4,
+            "heading": "Can I delete my K33P account?",
+            "text": "Yes. You can request account deletion from within the app. While your off-chain data can be removed, your on-chain DID remains immutable as part of the Cardano blockchain."
+          }
+        ]
+      },
+      {
+        "section": "Authentication",
+        "title": "Authentication",
+        "content": [
+          {
+            "id": 1,
+            "heading": null,
+            "text": "K33P is a self-custodial digital vault that helps you securely store and recover your wallet seed phrases. It uses biometric authentication, account decentralized identification (DID), and encrypted off-chain storage Iagon to ensure that only you can access your vault, even if your device is lost or stolen. K33P is privacy-first, user-friendly, and built on Cardano's secure blockchain infrastructure. No one, not even K33P, can view the content of your vault."
+          },
+          {
+            "id": 2,
+            "heading": "What authentication methods does K33P use?",
+            "text": "K33P uses multi-factor authentication including biometric verification (Face I.D/Fingerprint/Voice I.D/Iris scan), a passkey (PIN), and an optional OTP (One-Time Password) sent to your phone. These combine with your on-chain account identification to ensure only you can access your vault."
+          },
+          {
+            "id": 3,
+            "heading": "What if I forget my password or lose biometric access e.g if i forget my PIN?",
+            "text": "You can recover your account using your registered phone with an identity verification. Once verified, you'll be prompted to re-register a new biometrics authentication."
+          },
+          {
+            "id": 4,
+            "heading": "Is my biometric data stored on K33P servers?",
+            "text": "No. Your biometric data is only stored locally on your device with an encrypted copy on decentralized storage (Iagon) and used for authentication. K33P never stores or transmits your biometrics or any of your information."
+          }
+        ]
+      },
+      {
+        "section": "Lightpaper",
+        "title": "Lightpaper",
+        "content": [
+          {
+            "id": 1,
+            "heading": null,
+            "text": "K33P is a cutting-edge digital safe designed for securely managing cryptocurrency wallet seed phrases. By leveraging advanced encryption, biometric security, zero-knowledge proofs, and blockchain technology, K33P ensures that users maintain full control over their seed phrases information while eliminating the risks associated with traditional storage methods and user-friendly solution. Like a physical safe, it safeguards sensitive information in a digital vault, accessible only to its rightful owner."
+          },
+          {
+            "id": 2,
+            "heading": null,
+            "text": "By removing the hassle of writing down 24 or 15 word recovery keys and simplifying complex recovery procedures, K33P reduces anxiety over potential loss and ensures seamless, secure access to your wealth."
+          },
+          {
+            "id": 3,
+            "heading": "K33P adheres to the core principles of decentralization and self-sovereignty by design?",
+            "text": "Biometric authentication – Eliminates need to remember passwords or store physical copies. (E.g Face I.D, PIN, Fingerprint, Iris scan, Voice I.D)\nZero-Knowledge Proofs (ZK Privacy) – Ensures full privacy and regulatory compliance.\nDecentralized storage architecture – Eliminates single points of failure."
+          },
+          {
+            "id": 4,
+            "heading": null,
+            "text": "Seamless recovery – Simplifies identity recovery system. (account DID verification + PIN).\nAt K33P, security and privacy are our top priorities. With K33P Vault, ownership is verifiable and indisputable, users are exactly who they claim to be, and no one else can impersonate them. Experience secure, private, and trustless digital signatures, redefining identity protection."
+          }
+        ]
+      },
+      {
+        "section": "Payment",
+        "title": "Payment",
+        "content": [
+          {
+            "id": 1,
+            "heading": null,
+            "text": "K33P monetizes through a tiered, modular pricing strategy."
+          },
+          {
+            "id": 2,
+            "heading": "A. Freemium",
+            "text": "This involves a basic vault creation to backup a maximum of 2 wallet seed phrase."
+          },
+          {
+            "id": 3,
+            "heading": "B. Premium subscription ($3.99/monthly)",
+            "text": "With this tier, you have access to Multi-seed phrase backup for managing multiple seed phrases. And Inheritance mode which allow seed phrase transfer to next of kin."
+          }
+        ]
+      },
+      {
+        "section": "Vault Access",
+        "title": "Vault Access",
+        "content": [
+          {
+            "id": 1,
+            "heading": null,
+            "text": "Loss You can reinstall K33P on a new device and recover your vault by verifying your identity (phone OTP verification+PIN+Face I.D or Fingerprint that you use in betting up your account), and you back like you never lest. Your decentralized account identification allows K33P to retrieve your encrypted vault from secure storage and decrypt it on your new device."
+          },
+          {
+            "id": 2,
+            "heading": "Is my seed phrase ever stored on the blockchain?",
+            "text": "No. Your seed phrase is encrypted and stored off-chain using Iagon's decentralized storage network. Only a hashed reference of your account ID is anchored on-chain."
+          },
+          {
+            "id": 3,
+            "heading": "Can K33P see or access my vault contents?",
+            "text": "Never. K33P uses zero-knowledge proofs and end-to-end encryption to ensure that not even the platform can view or access your vault data."
+          }
+        ]
+      }
+    ],
+    "support": {
+      "phoneNumber": "+2348135005000"
+    }
+  }

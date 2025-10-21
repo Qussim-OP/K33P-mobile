@@ -1,7 +1,14 @@
+import { Lock_3 } from '@/assets/images/svg';
 import Button from '@/components/Button';
+import {
+  useCompletedBiometrics,
+  useSetFingerprintComplete,
+  useSetIrisComplete,
+  useSetVoiceComplete
+} from '@/store/useAuthStore';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Image,
   KeyboardAvoidingView,
@@ -12,7 +19,6 @@ import {
   TouchableWithoutFeedback,
   View
 } from 'react-native';
-import LockIcon2 from '../../../../assets/images/lock-3.png';
 import Method1Image from '../../../../assets/images/Method1Image.png';
 import Method2Image from '../../../../assets/images/Method2Image.png';
 import Method3Image from '../../../../assets/images/Method3Image.png';
@@ -21,81 +27,105 @@ import Method4Image from '../../../../assets/images/Method4Image.png';
 export default function Biometrics() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const [isBiometric, setIsBiometric] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [methods, setMethods] = useState([
+  const [showUnavailableMessage, setShowUnavailableMessage] = useState(false);
+  const completedBiometrics = useCompletedBiometrics();
+  const setFingerprintComplete = useSetFingerprintComplete();
+  const setVoiceComplete = useSetVoiceComplete();
+  const setIrisComplete = useSetIrisComplete();
+
+  // Memoize the methods to prevent unnecessary recalculations
+  const methods = useMemo(() => [
     {
       name: 'Face Scan',
       image: Method1Image,
       route: 'sign-up/biometrics/facescan',
-      isCompleted: false,
+      isCompleted: completedBiometrics.includes('Face I.D'),
     },
     {
       name: 'Fingerprint',
       image: Method2Image,
       route: 'sign-up/biometrics/fingerprint',
-      isCompleted: false,
+      isCompleted: completedBiometrics.includes('Fingerprint'),
     },
     {
       name: 'Voice ID',
       image: Method3Image,
       route: 'sign-up/biometrics/voiceid',
-      isCompleted: false,
+      isCompleted: completedBiometrics.includes('Voice ID'),
     },
     {
       name: 'Iris Scan',
       image: Method4Image,
       route: 'sign-up/biometrics/iris',
-      isCompleted: false,
+      isCompleted: completedBiometrics.includes('Iris Scan'),
     },
-  ]);
+  ], [completedBiometrics]);
 
-  const [activeAuth, setActiveAuth] = useState(['Phone Number', 'Fingerprint', 'PIN']);
-  const [inactiveAuth, setInactiveAuth] = useState(['Face I.D', 'Iris Scan']);
+  // Initialize auth states
+  const [authState, setAuthState] = useState(() => {
+    const initialActive = ['OTP', 'PIN'];
+    if (completedBiometrics.length > 0) {
+      initialActive.push(completedBiometrics[0]);
+    }
+    const allMethods = ['Face I.D', 'Fingerprint', 'Voice ID', 'Iris Scan'];
+    const initialInactive = allMethods.filter(m => !initialActive.includes(m));
+    return {
+      active: initialActive,
+      inactive: initialInactive
+    };
+  });
 
-  const hasCompletedMethod = methods.some(method => method.isCompleted);
+  const hasCompletedMethod = completedBiometrics.length > 0;
 
+  // Handle params changes without causing infinite loops
   useEffect(() => {
     if (params.faceScanCompleted === 'true') {
-      setMethods(prevMethods => {
-        if (prevMethods[0].isCompleted) return prevMethods;
-        return prevMethods.map(method =>
-          method.name === 'Face Scan' ? { ...method, isCompleted: true } : method
-        );
-      });
-      setIsBiometric(true);
+      // This will automatically update completedBiometrics via the store
+      // No need for additional state updates here
     }
-  }, [params.faceScanCompleted]);
-
-  useEffect(() => {
     if (params.fingerprintCompleted === 'true') {
-      setMethods(prevMethods => {
-        if (prevMethods[1].isCompleted) return prevMethods;
-        return prevMethods.map(method =>
-          method.name === 'Fingerprint' ? { ...method, isCompleted: true } : method
-        );
-      });
-      setIsBiometric(true);
+      // Same as above
     }
-  }, [params.fingerprintCompleted]);
-  
+  }, [params]);
+
+  // Hide the unavailable message after 3 seconds
+  useEffect(() => {
+    if (showUnavailableMessage) {
+      const timer = setTimeout(() => {
+        setShowUnavailableMessage(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showUnavailableMessage]);
+
   const handleMethodPress = (route: string) => {
-    setIsBiometric(true);
-    router.push(route);
+    if (route.includes('voiceid') || route.includes('iris')) {
+      setShowUnavailableMessage(true);
+    } else {
+      router.push(route);
+    }
   };
 
   const toggleAuth = (method: string, isActive: boolean) => {
-    if (method === 'Face Scan' || method === 'OTP') return;
+    if (method === 'OTP' || method === 'PIN') return;
 
-    if (isActive) {
-      setActiveAuth(prev => prev.filter(m => m !== method));
-      setInactiveAuth(prev => [...prev, method]);
-    } else {
-      if (activeAuth.length < 3) {
-        setInactiveAuth(prev => prev.filter(m => m !== method));
-        setActiveAuth(prev => [...prev, method]);
+    setAuthState(prev => {
+      if (isActive) {
+        return {
+          active: prev.active.filter(m => m !== method),
+          inactive: [...prev.inactive, method]
+        };
+      } else {
+        if (prev.active.length < 3) {
+          return {
+            active: [...prev.active, method],
+            inactive: prev.inactive.filter(m => m !== method)
+          };
+        }
+        return prev;
       }
-    }
+    });
   };
 
   const handleProceed = () => {
@@ -106,14 +136,15 @@ export default function Biometrics() {
   const closeModal = () => setShowModal(false);
 
   return (
-    <View className="flex-1 bg-neutral800 px-5 pt-14">
+    <View className="flex-1 px-5 mt-5">
       {/* Header */}
       <View className="relative flex-row items-center justify-start mb-16">
-        <Image
-          source={LockIcon2}
-          className="absolute left-1/2 transform -translate-x-1/2 w-[88px] h-[88px]"
-          resizeMode="contain"
-        />
+      <Lock_3 
+        style={{
+          position: 'absolute',
+          left: '50%',
+          transform: [{ translateX: '-50%' }]
+        }} />
       </View>
 
       {/* Content */}
@@ -148,14 +179,23 @@ export default function Biometrics() {
             );
           })}
         </View>
+
+        {/* Unavailable message */}
+        {showUnavailableMessage && (
+          <View className="bg-neutral700 p-3 rounded-lg mb-4">
+            <Text className="text-white font-sora text-center text-xs">
+              This feature is currently not available. Please use another authentication method.
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Proceed Button */}
-      <View className="pb-8">
+      <View className="pb-16">
         <Button
           text={hasCompletedMethod ? "Do Later" : "Proceed"}
           onPress={() => hasCompletedMethod ? setShowModal(true) : router.push('/sign-up/pinsetup')}
-          isDisabled={!isBiometric}
+          isDisabled={!hasCompletedMethod}
         />
       </View>
 
@@ -173,34 +213,34 @@ export default function Biometrics() {
               className="w-full"
             >
               <TouchableWithoutFeedback onPress={() => {}}>
-                <View className="bg-neutral800 rounded-t-3xl h-[73%]">
+                <View className="bg-mainBlack rounded-t-3xl">
                   {/* Handle bar */}
                   <TouchableOpacity className="items-center pt-3" onPress={closeModal}>
-                    <View className="w-12 h-1 bg-neutral100 rounded-full" />
+                    <View className="w-16 h-1 bg-white rounded-full" />
                   </TouchableOpacity>
 
                   {/* Title */}
-                  <Text className="text-white font-sora-bold text-xl text-center mt-6">
-                    Authentication Paths
+                  <Text className="text-white font-sora-bold text-sm text-center mt-6">
+                    Select your Login Authentication path
                   </Text>
 
                   {/* Active Authentication */}
-                  <View className="px-6 mt-8">
-                    <Text className="text-neutral200 font-sora text-sm mb-4">
+                  <View className="px-6 mt-10">
+                    <Text className="text-neutral200 font-sora text-sm mb-3">
                       Active Authentication Path
                     </Text>
 
-                    {activeAuth.map((method, index) => (
+                    {authState.active.map((method, index) => (
                       <TouchableOpacity
                         key={index}
                         className="flex-row items-center py-3"
                         onPress={() => toggleAuth(method, true)}
-                        disabled={method === 'Face Scan'}
+                        disabled={method === 'OTP' || method === 'PIN'}
                       >
                         <MaterialIcons
-                          name={method === 'Face Scan' ? 'radio-button-checked' : 'radio-button-on'}
+                          name={['OTP', 'PIN'].includes(method) ? 'radio-button-checked' : 'radio-button-on'}
                           size={24}
-                          color={method === 'Face Scan' ? '#FFD700' : '#FFD700'}
+                          color="#FFD700"
                         />
                         <Text className="text-white font-sora ml-3">{method}</Text>
                       </TouchableOpacity>
@@ -208,38 +248,43 @@ export default function Biometrics() {
                   </View>
 
                   {/* Inactive Authentication */}
-                  <View className="px-6 mt-8">
-                    <Text className="text-neutral200 font-sora text-sm mb-4">
+                  <View className="px-6 mt-8 mb-12">
+                    <Text className="text-neutral200 font-sora text-sm mb-3">
                       Inactive Authentication Path
                     </Text>
 
-                    {inactiveAuth.map((method, index) => (
-                      <TouchableOpacity
-                        key={index}
-                        className="flex-row items-center py-3"
-                        onPress={() => toggleAuth(method, false)}
-                      >
-                        <MaterialIcons
-                          name="radio-button-off"
-                          size={24}
-                          color="white"
-                        />
-                        <Text className="text-white font-sora ml-3">{method}</Text>
-                      </TouchableOpacity>
-                    ))}
+                    {authState.inactive.map((method, index) => {
+                      const isCompleted = completedBiometrics.includes(method);
+                      return (
+                        <TouchableOpacity
+                          key={index}
+                          className="flex-row items-center py-3"
+                          onPress={() => toggleAuth(method, false)}
+                          disabled={!isCompleted && authState.active.length < 3}
+                        >
+                          <MaterialIcons
+                            name="radio-button-off"
+                            size={24}
+                            color={isCompleted ? "white" : "white"}
+                          />
+                          <Text className={`font-sora ml-3 ${isCompleted ? 'text-white' : 'text-white'}`}>
+                            {method}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
 
                   {/* Note */}
-                  <Text className="text-neutral200 font-sora text-sm text-center px-6 mt-8">
-                    Note: 'Face Scan' (OTP) is required and cannot be removed.
+                  <Text className="text-neutral200 font-sora text-xs text-center px-6 mt-8">
+                    <Text className='text-main'>Note:</Text> All other authentication can be changed except 'OTP' and 'PIN'.
                   </Text>
 
                   {/* Proceed Button */}
-                  <View className="px-6 mt-8 mb-8">
+                  <View className="px-6 mt-8 mb-16">
                     <Button
                       text="Proceed"
                       onPress={handleProceed}
-                      isDisabled={activeAuth.length !== 3}
                     />
                   </View>
                 </View>

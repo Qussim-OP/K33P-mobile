@@ -1,18 +1,15 @@
+import { BackIcon, Lock_2, Lock_3 } from '@/assets/images/svg';
 import Button from '@/components/Button';
 import NumericKeypad from '@/components/Keypad';
 import { usePinStore } from '@/store/usePinStore'; // Import the store
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  Image,
   Text,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View,
+  View
 } from 'react-native';
-import BackButton from '../../../../assets/images/back.png';
-import LockIcon2 from '../../../../assets/images/lock-2.png';
-import LockIcon3 from '../../../../assets/images/lock-3.png';
 
 export default function PinSetupScreen() {
   const router = useRouter();
@@ -113,17 +110,33 @@ export default function PinSetupScreen() {
 
   return (
     <TouchableWithoutFeedback onPress={() => setShowKeypad(false)}>
-      <View className="flex-1 bg-neutral800 px-5 pt-12">
+      <View className="flex-1 px-5">
         {/* Header */}
         <View className="relative flex-row items-center justify-start mb-12">
           <TouchableOpacity className="z-10" onPress={() => router.back()}>
-            <Image source={BackButton} className="w-10 h-10" resizeMode="contain" />
-          </TouchableOpacity>
-          <Image
-            source={isValid ? LockIcon3 : LockIcon2}
-            className="absolute left-1/2 transform -translate-x-1/2 w-[88px] h-[88px]"
-            resizeMode="contain"
-          />
+          <BackIcon width={40} height={40} />
+
+  </TouchableOpacity>
+        {
+          isValid ? (
+            <Lock_3 
+            style={{
+              position: 'absolute',
+              left: '50%',
+              transform: [{ translateX: '-50%' }]
+            }}
+            />
+          ) : (
+            <Lock_2 
+            style={{
+              position: 'absolute',
+              left: '50%',
+              transform: [{ translateX: '-50%' }]
+            }}
+            />
+          )
+        }
+         
         </View>
 
         {/* Content */}
@@ -169,7 +182,7 @@ export default function PinSetupScreen() {
         </View>
 
         {/* Confirm / Continue Button */}
-        <View className={`pb-8 ${showKeypad ? 'mb-80' : ''}`}>
+        <View className={`pb-16 ${showKeypad ? 'mb-72' : ''}`}>
           <Button
             text={step === 1 ? 'Confirm' : isValid ? 'Continue' : 'Confirm'}
             onPress={handleProceed}

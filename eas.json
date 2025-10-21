@@ -1,16 +1,19 @@
 {
-    "build": {
-      "development": {
-        "developmentClient": true,
-        "distribution": "internal"
-      },
-      "preview": {
-        "distribution": "internal",
-        "android": {
+  "cli": {
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
         "buildType": "apk"
       }
-      },
-      "preview2": {
+    },
+    "preview2": {
       "android": {
         "gradleCommand": ":app:assembleRelease"
       }
@@ -18,15 +21,14 @@
     "preview3": {
       "developmentClient": true
     },
-      "production": {
-        "ios": {
-          "simulator": false,
-          "image": "latest", 
-          "env": {
-            "APP_ENV": "production"
-          }
+    "production": {
+      "ios": {
+        "simulator": false,
+        "image": "latest",
+        "env": {
+          "APP_ENV": "production"
         }
       }
-      }
     }
-  
+  }
+}

@@ -1,13 +1,13 @@
+import { BackIcon } from '@/assets/images/svg';
 import Button from '@/components/Button';
-import { usePhoneStore } from '@/store/usePhoneStore'; // Import usePhoneStore
-import { usePinStore } from '@/store/usePinStore'; // Import usePinStore
-import { addWallets } from '@/utils/storage'; // Import addWallets
+import { usePhoneStore } from '@/store/usePhoneStore';
+import { usePinStore } from '@/store/usePinStore';
+import { addWallets } from '@/utils/storage';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Video } from 'expo-av';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, Dimensions, Image, Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native'; // Added Alert
-import BackButton from '../../../assets/images/back.png';
+import { Alert, Dimensions, Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native'; // Added Alert
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -116,15 +116,11 @@ export default function SearchPage() {
   const isProceedButtonDisabled = selectedWallets.length === 0;
 
   return (
-    <View className="flex-1 bg-[#181818] pt-12">
-      <View className="absolute top-12 left-5 z-10">
-        <TouchableOpacity onPress={() => router.back()}>
-          <Image
-            source={BackButton}
-            className="w-10 h-10"
-            resizeMode="contain"
-          />
-        </TouchableOpacity>
+    <View className="flex-1 bg-[#181818]">
+      <View className="absolute left-5 z-10">
+      <TouchableOpacity onPress={() => router.back()}>
+                <BackIcon width={40} height={40} />
+              </TouchableOpacity>
       </View>
 
       <View className="flex-1 justify-center items-center px-8 z-10">

@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "k33p-mobil",
-    "slug": "k33p-mobil",
+    "slug": "k33p-rfybgrpivl35ryvivxjcp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/K33P.-small.png",
@@ -29,7 +29,11 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.deepurple.k33pmobil"
+      "package": "com.deepurple.k33pmobil",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -47,7 +51,6 @@
           "backgroundColor": "#000000"
         }
       ],
-      "react-native-vision-camera",
       "expo-secure-store",
       "expo-video",
       [
@@ -65,8 +68,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "ece5bfc9-764a-4732-a545-2ee6ec9a15e7"
+        "projectId": "362c8196-eb52-436b-ac1f-835afb0f039f"
       }
-    }
+    },
+    "owner": "k33p"
   }
 }

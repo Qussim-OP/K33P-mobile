@@ -3,9 +3,8 @@ import NumericKeypad from '@/components/Keypad';
 import { usePhoneStore } from '@/store/usePhoneStore';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Image, Keyboard, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
-import BackButton from '../../../assets/images/back.png';
-import LockIcon from '../../../assets/images/lock-1.png';
+import { Keyboard, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { BackIcon, Lock_1 } from '../../../assets/images/svg';
 
 export default function PhoneEntryScreen() {
   const router = useRouter();
@@ -75,18 +74,21 @@ export default function PhoneEntryScreen() {
   const showError = isTouched && !isValid && phoneNumber.length > 0;
 
   return (
-    <View className="flex-1 bg-neutral800 px-5 pt-12">
+    <View className="flex-1 px-5">
       {/* Header */}
       <View className="relative flex-row items-center justify-start mb-12">
-  <TouchableOpacity className="z-10" onPress={() => router.back()}>
-    <Image source={BackButton} className="w-10 h-10" resizeMode="contain" />
-  </TouchableOpacity>
-  <Image
-    source={LockIcon}
-    className="absolute left-1/2 transform -translate-x-1/2 w-[88px] h-"
-    resizeMode="contain"
-  />
-</View>
+        <TouchableOpacity className="z-10" onPress={() => router.back()}>
+          <BackIcon width={40} height={40} />
+
+        </TouchableOpacity>
+        <Lock_1 
+        style={{
+          position: 'absolute',
+          left: '50%',
+          transform: [{ translateX: '-50%' }]
+        }}
+      />
+      </View>
 
       {/* Content */}
       <View className="flex-1">
@@ -132,7 +134,7 @@ export default function PhoneEntryScreen() {
       </View>
 
       {/* Footer */}
-      <View className={`pb-8 ${showKeypad ? 'mb-80' : ''}`}>
+      <View className={`pb-16 ${showKeypad ? 'mb-72' : ''}`}>
         <Button
           text="Proceed"
           onPress={handleProceed}

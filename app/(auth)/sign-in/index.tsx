@@ -1,11 +1,10 @@
+import { BackIcon, SIGN_IN_0 } from '@/assets/images/svg';
 import Button from '@/components/Button';
 import NumericKeypad from '@/components/Keypad';
 import { usePhoneStore } from '@/store/usePhoneStore';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Image, Keyboard, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
-import BackButton from '../../../assets/images/back.png';
-import LockIcon from '../../../assets/images/lock-4.png';
+import { Keyboard, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 
 export default function PhoneEntryScreen() {
   const router = useRouter();
@@ -20,6 +19,8 @@ export default function PhoneEntryScreen() {
   const [isTouched, setIsTouched] = useState(false);
   const [showKeypad, setShowKeypad] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Format phone number as +xxx-xxx-xxxx-xxx
   useEffect(() => {
@@ -41,43 +42,85 @@ export default function PhoneEntryScreen() {
     } else {
       setFormattedNumber('');
     }
-  }, [phoneNumber, setFormattedNumber]); // Dependency changed from rawPhoneNumber
+  }, [phoneNumber, setFormattedNumber]);
 
   const handlePhoneChange = (text: string) => {
     const cleanedNumber = text.replace(/\D/g, '');
-    setPhoneNumber(cleanedNumber); // Changed from setRawPhoneNumber
+    setPhoneNumber(cleanedNumber);
     setIsValid(cleanedNumber.length === 13);
     setIsTouched(true);
+    setError(null); // Clear error when user types
   };
 
   const handleKeyPress = (num: string) => {
-    const newNumber = phoneNumber + num; // Changed from rawPhoneNumber
+    const newNumber = phoneNumber + num;
     if (newNumber.length <= 13) {
-      setPhoneNumber(newNumber); // Changed from setRawPhoneNumber
+      setPhoneNumber(newNumber);
       setIsValid(newNumber.length === 13);
       setIsTouched(true);
+      setError(null); // Clear error when user types
     }
   };
 
   const handleBackspace = () => {
-    const newNumber = phoneNumber.slice(0, -1); // Changed from rawPhoneNumber
-    setPhoneNumber(newNumber); // Changed from setRawPhoneNumber
+    const newNumber = phoneNumber.slice(0, -1);
+    setPhoneNumber(newNumber);
     setIsValid(newNumber.length === 13);
     setIsTouched(true);
+    setError(null); // Clear error when user types
   };
 
-  const handleProceed = () => {
-    console.log('Entered phone number:', formattedNumber); // Changed from formattedPhoneNumber
+  const checkUserExists = async (): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await fetch('https://k33p-backend-i9kj.onrender.com/api/zk/login-with-pin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phoneNumber: formattedNumber
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        return true;
+      } else {
+        setError(data.error?.message || 'User not found');
+        return false;
+      } 
+    } catch (error) {
+      console.error('Error checking user:', error);
+      setError('Network error. Please try again.');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleProceed = async () => {
+    if (!isValid) return;
+
+    /* const userExists = await checkUserExists();
+    if (userExists) {
+      console.log('User found, proceeding to OTP:', formattedNumber);
+      router.push('/sign-in/otp');
+    } */
     router.push('/sign-in/otp');
+
   };
 
   const handleNOK = () => {
     console.log('Login as NOK');
-    router.push('/sign-in-nok');
+    //router.push('/sign-in-nok');
   };
 
-  const showError = isTouched && !isValid && phoneNumber.length > 0; // Changed from rawPhoneNumber
-  const showNOKButton = !showKeypad  
+  const showError = isTouched && !isValid && phoneNumber.length > 0;
+  const showNOKButton = !showKeypad;
 
   useEffect(() => {
     if (phoneNumber.length == 13) {
@@ -88,17 +131,20 @@ export default function PhoneEntryScreen() {
   }, [phoneNumber]);
 
   return (
-    <View className="flex-1 bg-neutral800 px-5 pt-12">
+    <View className="flex-1 px-5 ">
       {/* Header */}
       <View className="relative flex-row items-center justify-start mb-12">
-        <TouchableOpacity className="z-10" onPress={() => router.back()}>
-          <Image source={BackButton} className="w-10 h-10" resizeMode="contain" />
+      <TouchableOpacity className="z-10" onPress={() => router.back()}>
+          <BackIcon width={40} height={40} />
+
         </TouchableOpacity>
-        <Image
-          source={LockIcon}
-          className="absolute left-1/2 transform -translate-x-1/2 w-[88px] h-"
-          resizeMode="contain"
-        />
+        <SIGN_IN_0 
+        style={{
+          position: 'absolute',
+          left: '50%',
+          transform: [{ translateX: '-50%' }]
+        }}
+      />
       </View>
 
       {/* Content */}
@@ -118,6 +164,7 @@ export default function PhoneEntryScreen() {
           <View pointerEvents="none">
             <TextInput
               className={`rounded-lg px-5 py-3 mb-2 ${
+                error ? 'text-error500 border-error500' : 
                 showError ? 'text-error500 border-error500' : 'text-white border-neutral200'
               } font-sora text-sm border ${
                 isFocused ? 'border-white' : 'border-neutral200'
@@ -125,7 +172,7 @@ export default function PhoneEntryScreen() {
               placeholder="+234-801-2345-678"
               placeholderTextColor="#969696"
               keyboardType="phone-pad"
-              value={formattedNumber} // Changed from formattedPhoneNumber
+              value={formattedNumber}
               onChangeText={handlePhoneChange}
               maxLength={18}
               showSoftInputOnFocus={false}
@@ -142,18 +189,24 @@ export default function PhoneEntryScreen() {
             Phone number must be 13 digits (including country code)
           </Text>
         )}
+
+        {error && (
+          <Text className="text-error500 font-sora text-center text-sm p-2">
+            {error}
+          </Text>
+        )}
       </View>
 
       {/* Footer */}
       <View className={`pb-5 ${showKeypad ? 'mb-80' : ''}`}>
         <Button
-          text="Proceed"
+          text={isLoading ? "Checking..." : "Proceed"}
           onPress={handleProceed}
-          isDisabled={!isValid}
+          isDisabled={!isValid || isLoading}
         />
 
         {showNOKButton && (
-          <View className='mt-5'>
+          <View className='mt-5 mb-8'>
             <Button
               text="Login as NOK"
               onPress={handleNOK}
@@ -174,8 +227,6 @@ export default function PhoneEntryScreen() {
           <View className="absolute top-0 left-0 right-0 bottom-80" />
         </TouchableWithoutFeedback>
       )}
-
-
 
       {/* Custom Numeric Keypad */}
       <NumericKeypad

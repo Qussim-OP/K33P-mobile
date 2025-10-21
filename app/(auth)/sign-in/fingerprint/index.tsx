@@ -1,16 +1,16 @@
+import { BackIcon, SIGN_IN_2, SIGN_IN_3 } from '@/assets/images/svg';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Image, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import CenterImage from '../../../..//assets/images/fingerprint.png';
-import BackButton from '../../../../assets/images/back.png';
-import LockIcon from '../../../../assets/images/lock-3.png';
 
 export default function Fingerprint() {
   const router = useRouter();
   const [completionPercentage, setCompletionPercentage] = useState(0);
   const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [isUnlocked, setIsUnlocked] = useState(false);
 
   useEffect(() => {
     checkBiometricAvailability();
@@ -49,7 +49,10 @@ export default function Fingerprint() {
 
       if (result.success) {
         setCompletionPercentage(100);
-        router.push('/(home)');
+        setIsUnlocked(true);
+        setTimeout(() => {
+          router.push('/(home)');
+        }, 500);
       } else {
         setCompletionPercentage(0);
         if (result.error === 'user_fallback') {
@@ -58,7 +61,7 @@ export default function Fingerprint() {
           Alert.alert('Authentication Canceled', 'You canceled the fingerprint scan.');
         } else if (result.error === 'system_cancel' || result.error === 'app_cancel') {
           Alert.alert('Authentication Failed', 'The authentication process was interrupted. Please try again.');
-        } else if (result.error === 'lockout' || result.error === 'too_many_attempts') {
+        } else if (result.error === 'lockout' || result.error === 'timeout') {
           Alert.alert('Authentication Failed', 'Too many failed attempts. Biometric authentication is temporarily locked. Please try again later or use your device passcode/PIN.');
         } else {
           Alert.alert('Authentication Failed', `Incorrect fingerprint. Please try again. Error: ${result.error || 'Unknown'}`);
@@ -83,20 +86,31 @@ export default function Fingerprint() {
 
   return (
     <TouchableWithoutFeedback>
-      <View className="flex-1 bg-neutral800 px-5 pt-12">
+      <View className="flex-1 px-5">
         <View className="relative flex-row items-center justify-start mb-4">
           <TouchableOpacity className="z-10" onPress={() => router.back()}>
-            <Image source={BackButton} className="w-10 h-10" resizeMode="contain" />
+            <BackIcon width={40} height={40} />
           </TouchableOpacity>
-          <Image
-            source={LockIcon}
-            className="absolute left-1/2 transform -translate-x-1/2 w-[88px] h-[16px]"
-            resizeMode="contain"
-          />
+          {isUnlocked ? (
+            <SIGN_IN_3
+              style={{
+                position: 'absolute',
+                left: '50%',
+                transform: [{ translateX: '-50%' }],
+              }}
+            />
+          ) : (
+            <SIGN_IN_2
+              style={{
+                position: 'absolute',
+                left: '50%',
+                transform: [{ translateX: '-50%' }],
+              }}
+            />
+          )}
         </View>
 
         <View className="flex-1 items-center justify-center">
-
           <TouchableOpacity
             onPress={handleFingerprintScan}
             disabled={isAuthenticating || !isBiometricAvailable}
@@ -108,16 +122,14 @@ export default function Fingerprint() {
               style={{ opacity: isAuthenticating ? 0.6 : 1 }}
             />
           </TouchableOpacity>
-        </View>
-        <View className="mb-8 px-2">
+
+          <View className="mt-5 px-2">
             <Text className="text-white font-sora text-sm text-center mb-4" numberOfLines={3}>
               Touch the fingerprint icon to verify your identity
             </Text>
-
           </View>
-
-
-     </View>
+        </View>
+      </View>
     </TouchableWithoutFeedback>
   );
 }
