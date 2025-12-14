@@ -202,10 +202,17 @@ export default function OTPEntryScreen() {
 
         {/* Dismiss Keypad Overlay */}
         {showKeypad && (
-          <TouchableWithoutFeedback onPress={() => setShowKeypad(false)}>
-            <View className="absolute top-0 left-0 right-0 bottom-80 bg-transparent" />
-          </TouchableWithoutFeedback>
-        )}
+        <TouchableWithoutFeedback
+          onPress={() => {
+            setShowKeypad(false);
+          }}
+        >
+          <View 
+            className="absolute top-0 left-0 right-0"
+            style={{ bottom: 400 }} // Adjust this value based on your keypad height
+          />
+        </TouchableWithoutFeedback>
+      )}
 
         {/* Custom Numeric Keypad */}
         <NumericKeypad

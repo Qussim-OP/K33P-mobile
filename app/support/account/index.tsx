@@ -63,7 +63,6 @@ export default function AccountHelpScreen() {
   const router = useRouter();
   const searchFlatListRef = useRef<FlatList>(null);
   const searchInputRef = useRef<TextInput>(null);
-  const cardScrollViewRefs = useRef<{[key: string]: any}>({});
   
   const accountContent = helpContent.helpSections.find(section => section.section === 'Account');
   const supportPhoneNumber = helpContent.support.phoneNumber;
@@ -199,7 +198,8 @@ export default function AccountHelpScreen() {
   };
 
   const renderSearchResultItem = useCallback(({ item, index }: { item: SearchResult; index: number }) => {
-    const cardKey = `${item.section}-${item.id}`;
+    // Calculate dynamic height based on content
+    const itemHeight = screenHeight * 0.66; // Fixed height for consistency
     
     return (
       <View
@@ -209,9 +209,10 @@ export default function AccountHelpScreen() {
           backgroundColor: '#222222',
           borderRadius: 12,
           opacity: index === searchCurrent ? 1 : 0.6,
-          height: screenHeight * 0.66,
+          height: itemHeight, // Fixed height
         }}
       >
+        {/* Header - Always visible */}
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={() => navigateToSearchResult(item.route)}
@@ -222,14 +223,24 @@ export default function AccountHelpScreen() {
           </Text>
         </TouchableOpacity>
         
-        <ScrollView
-          ref={ref => cardScrollViewRefs.current[cardKey] = ref}
-          showsVerticalScrollIndicator={true}
-          className="flex-1 px-4 pb-4"
-          contentContainerStyle={{ paddingBottom: 20 }}
-        >
-          {item.highlightedContent}
-        </ScrollView>
+        {/* Scrollable Content Area */}
+        <View style={{ flex: 1 }}>
+          <ScrollView
+            showsVerticalScrollIndicator={true}
+            indicatorStyle="white" // iOS only
+            className="flex-1 px-4"
+            contentContainerStyle={{ 
+              paddingBottom: 40, // Extra padding at bottom
+              paddingTop: 8,
+            }}
+            nestedScrollEnabled={true} // Important for nested scrolling
+            scrollEventThrottle={16}
+            bounces={true}
+            overScrollMode="always"
+          >
+            {item.highlightedContent}
+          </ScrollView>
+        </View>
       </View>
     );
   }, [searchCurrent, navigateToSearchResult]);
@@ -295,69 +306,72 @@ export default function AccountHelpScreen() {
           {/* Search Results Carousel */}
           {searchQuery && searchResults.length > 0 && (
             <View className="flex-1">
-              <View className="">
-                <FlatList
-                  ref={searchFlatListRef}
-                  data={searchResults}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  keyExtractor={(item) => `${item.section}-${item.id}`}
-                  renderItem={renderSearchResultItem}
-                  snapToInterval={ITEM_WIDTH + ITEM_SPACING}
-                  decelerationRate="fast"
-                  snapToAlignment="start"
-                  initialScrollIndex={0}
-                  getItemLayout={(data, index) => ({
-                    length: ITEM_WIDTH + ITEM_SPACING,
-                    offset: (ITEM_WIDTH + ITEM_SPACING) * index,
-                    index,
-                  })}
-                  contentContainerStyle={{ paddingLeft: 20, paddingRight: ITEM_SPACING }}
-                  onViewableItemsChanged={onSearchViewRef.current}
-                  viewabilityConfig={viewConfigRef.current}
-                  pagingEnabled={false}
-                />
+              <FlatList
+                ref={searchFlatListRef}
+                data={searchResults}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(item) => `${item.section}-${item.id}`}
+                renderItem={renderSearchResultItem}
+                snapToInterval={ITEM_WIDTH + ITEM_SPACING}
+                decelerationRate="fast"
+                snapToAlignment="start"
+                initialScrollIndex={0}
+                getItemLayout={(data, index) => ({
+                  length: ITEM_WIDTH + ITEM_SPACING,
+                  offset: (ITEM_WIDTH + ITEM_SPACING) * index,
+                  index,
+                })}
+                contentContainerStyle={{ 
+                  paddingLeft: 20, 
+                  paddingRight: ITEM_SPACING,
+                  paddingBottom: 20, // Extra padding for bottom
+                }}
+                onViewableItemsChanged={onSearchViewRef.current}
+                viewabilityConfig={viewConfigRef.current}
+                pagingEnabled={false}
+                style={{ flex: 1 }}
+              />
 
-                <View className="flex-row items-center justify-between px-4 mt-6">
-                  <TouchableOpacity
-                    onPress={prevSearchSlide}
-                    activeOpacity={0.7}
-                    disabled={searchCurrent === 0}
-                  >
-                    <Ionicons
-                      name="chevron-back-outline"
-                      size={24}
-                      color={searchCurrent === 0 ? '#555' : '#fff'}
+              <View className="flex-row items-center justify-between px-4 mt-4 mb-4">
+                <TouchableOpacity
+                  onPress={prevSearchSlide}
+                  activeOpacity={0.7}
+                  disabled={searchCurrent === 0}
+                >
+                  <Ionicons
+                    name="chevron-back-outline"
+                    size={24}
+                    color={searchCurrent === 0 ? '#555' : '#fff'}
+                  />
+                </TouchableOpacity>
+
+                <View className="flex-row gap-3 items-center bg-neutral700 rounded-full px-4 py-2">
+                  {searchResults.map((_, index) => (
+                    <Animated.View
+                      key={index}
+                      style={{
+                        width: index === searchCurrent ? 16 : 8,
+                        height: 8,
+                        borderRadius: 8,
+                        backgroundColor: '#B0B0B0',
+                        transition: 'width 0.25s ease-in-out',
+                      }}
                     />
-                  </TouchableOpacity>
-
-                  <View className="flex-row gap-3 items-center bg-neutral700 rounded-full px-4 py-2">
-                    {searchResults.map((_, index) => (
-                      <Animated.View
-                        key={index}
-                        style={{
-                          width: index === searchCurrent ? 16 : 8,
-                          height: 8,
-                          borderRadius: 8,
-                          backgroundColor: '#B0B0B0',
-                          transition: 'width 0.25s ease-in-out',
-                        }}
-                      />
-                    ))}
-                  </View>
-
-                  <TouchableOpacity
-                    onPress={nextSearchSlide}
-                    activeOpacity={0.7}
-                    disabled={searchCurrent === searchResults.length - 1}
-                  >
-                    <Ionicons
-                      name="chevron-forward-outline"
-                      size={24}
-                      color={searchCurrent === searchResults.length - 1 ? '#555' : '#fff'}
-                    />
-                  </TouchableOpacity>
+                  ))}
                 </View>
+
+                <TouchableOpacity
+                  onPress={nextSearchSlide}
+                  activeOpacity={0.7}
+                  disabled={searchCurrent === searchResults.length - 1}
+                >
+                  <Ionicons
+                    name="chevron-forward-outline"
+                    size={24}
+                    color={searchCurrent === searchResults.length - 1 ? '#555' : '#fff'}
+                  />
+                </TouchableOpacity>
               </View>
             </View>
           )}

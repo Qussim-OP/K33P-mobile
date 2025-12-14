@@ -1,11 +1,12 @@
+import { BackIcon } from '@/assets/images/svg';
 import Button from '@/components/Button';
-import { addWallets } from '@/utils/storage';
+import { addWalletToFolder, createWalletData } from '@/utils/wallet-api';
 import { Octicons } from '@expo/vector-icons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react'; // Added useEffect
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  Alert, // Added Alert for better user feedback
+  Alert,
   Animated,
   Easing,
   Keyboard,
@@ -18,16 +19,12 @@ import {
   TouchableWithoutFeedback,
   View
 } from 'react-native';
-// Import your Zustand stores
-import { BackIcon } from '@/assets/images/svg';
-import { usePhoneStore } from '@/store/usePhoneStore';
-import { usePinStore } from '@/store/usePinStore';
 
 interface Wallet {
   id: string;
   name: string;
-  keyType?: '12' | '24'; // Added as per WalletFolders interface
-  fileId?: string;       // Added as per WalletFolders interface
+  keyType?: '12' | '24';
+  fileId?: string;
 }
 
 const allWallets: Wallet[] = [
@@ -60,34 +57,25 @@ const popularWallets: Wallet[] = [
 
 export default function AddManually() {
   const router = useRouter();
+  const { folderId } = useLocalSearchParams();
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedWallets, setSelectedWallets] = useState<Wallet[]>([]);
   const [isKeyboardVisible, setKeyboardVisible] = useState<boolean>(false);
-  const [isStoreHydrated, setIsStoreHydrated] = useState(false); // State for hydration
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const slideAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const textInputRef = useRef<TextInput>(null);
 
-  // Get phoneNumber and pin from your Zustand stores
-  const { phoneNumber } = usePhoneStore();
-  const { pin, hasPin } = usePinStore();
-
-  // Monitor store hydration
+  // Log folder ID when component mounts
   useEffect(() => {
-    const unsubscribe = usePinStore.persist.onFinishHydration(() => {
-      setIsStoreHydrated(true);
-      console.log('AddManually: Zustand Pin Store Hydrated!');
-    });
-
-    if (usePinStore.persist.hasHydrated()) {
-      setIsStoreHydrated(true);
-      console.log('AddManually: Zustand Pin Store already hydrated on mount.');
+    console.log('AddManually: Folder ID received:', folderId);
+    
+    if (!folderId) {
+      Alert.alert('Error', 'Folder ID not found. Please go back and try again.');
     }
-
-    return () => unsubscribe();
-  }, []);
+  }, [folderId]);
 
   // Keyboard listeners
   useEffect(() => {
@@ -151,63 +139,71 @@ export default function AddManually() {
   };
 
   const handleProceed = async () => {
-    // Wait for stores to be hydrated
-    if (!isStoreHydrated) {
-      console.warn('AddManually: Stores not hydrated yet, cannot proceed.');
-      Alert.alert('Loading Session', 'Please wait while we load your session data.');
+    if (!folderId) {
+      Alert.alert('Error', 'Folder ID not found. Please try again.');
       return;
     }
 
-    if (!phoneNumber) {
-      console.error('AddManually: Phone number is missing during proceed.');
-      Alert.alert(
-        'Session Expired',
-        'Your phone number is missing. Please log in again.',
-        [{ text: 'OK', onPress: () => router.replace('/sign-in') }]
-      );
+    if (selectedWallets.length === 0) {
+      Alert.alert('No Wallets Selected', 'Please select at least one wallet to proceed.');
       return;
     }
 
-    // Determine the PIN to use based on 'hasPin'
-    let pinToUse: string;
-    if (hasPin) {
-        // If hasPin is true, a PIN is expected. If 'pin' is null/undefined here, it's an issue.
-        if (pin === null || pin === undefined) {
-            console.error('AddManually: hasPin is true but pin value is null/undefined.');
-            Alert.alert(
-                'PIN Required',
-                'Your PIN is missing or invalid. Please set your PIN again.',
-                [{ text: 'OK', onPress: () => router.replace('/(auth)/sign-up/pinsetup') }]
-            );
-            return;
-        }
-        pinToUse = pin;
-    } else {
-        // If hasPin is false, no PIN was ever set. Use an empty string or a placeholder if your storage allows it.
-        // **IMPORTANT**: This part depends on whether your app *requires* a PIN to store wallets.
-        // If it does, then the check `if (!pinToUse && hasPin)` or `if (pin === null)` above should be the main validation.
-        // For now, assuming an empty string is acceptable if no PIN was set.
-        pinToUse = '';
-    }
-
-    // Log the values before calling addWallets for debugging
-    console.log('AddManually: Calling addWallets with:', {
-      selectedWallets: selectedWallets.map(w => w.name),
-      phoneNumber: phoneNumber,
-      pinToUse: pinToUse, // Log the actual value being passed
-    });
+    setIsSubmitting(true);
 
     try {
-      await addWallets(selectedWallets, phoneNumber, pinToUse);
-      console.log('AddManually: Wallets added successfully via storage utility.');
-      router.push({
-        pathname: '/(home)',
-        // If you need to pass data back to add-to-wallet, uncomment and adjust this:
-        // params: { newWallets: JSON.stringify(selectedWallets) }
-      });
-    } catch (error) {
-      console.error('AddManually: Error adding wallets:', error);
+      // Add each selected wallet to the folder with just the name
+      const results = await Promise.allSettled(
+        selectedWallets.map(async (wallet) => {
+          // Create wallet data with just the name (no keyType or fileId)
+          const walletData = createWalletData(wallet.name);
+
+          console.log(`Adding wallet to folder ${folderId}:`, walletData);
+          
+          const result = await addWalletToFolder(folderId as string, walletData);
+          
+          if (!result.success) {
+            throw new Error(result.message || `Failed to add ${wallet.name}`);
+          }
+          
+          return result;
+        })
+      );
+
+      // Check results
+      const successfulWallets = results.filter(result => result.status === 'fulfilled').length;
+      const failedWallets = results.filter(result => result.status === 'rejected');
+
+      if (failedWallets.length === 0) {
+        // All wallets added successfully
+        Alert.alert(
+          'Success', 
+          `${successfulWallets} wallet(s) added successfully!`,
+          [
+            { 
+              text: 'OK', 
+              onPress: () => router.replace('/(home)/add-to-wallet')
+            }
+          ]
+        );
+      } else {
+        // Some wallets failed
+        const errorMessages = failedWallets
+          .map((result: any) => result.reason?.message || 'Unknown error')
+          .join('\n• ');
+
+        Alert.alert(
+          'Errror',
+          `${errorMessages}`,
+          [{ text: 'OK' }]
+        );
+      }
+
+    } catch (error: any) {
+      console.error('AddManually: Error adding wallets to folder:', error);
       Alert.alert('Error', 'Failed to add wallets. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -219,6 +215,7 @@ export default function AddManually() {
         return [...prevSelected, wallet];
       }
     });
+    
     // If not searching, trigger search mode when a wallet is selected
     if (!isSearching) expandSearch();
   };
@@ -241,19 +238,6 @@ export default function AddManually() {
     inputRange: [0, 1],
     outputRange: [10, 0],
   });
-
-  const getScrollViewContentPaddingTop = () => {
-    let basePadding = 0; // Start with 0 as the search bar position is absolute below header
-    if (isSearching) {
-      basePadding = 120; // Enough space for the search bar when it's expanded
-      if (selectedWallets.length > 0) {
-        basePadding += 40; // Add space for selected tags if they appear
-      }
-    } else {
-        basePadding = 0; // No extra padding needed if not searching
-    }
-    return basePadding;
-  };
 
   return (
     <KeyboardAvoidingView
@@ -290,12 +274,20 @@ export default function AddManually() {
             </Animated.View>
           </View>
 
+          {/* Folder Info */}
+          {/* {folderId && (
+            <View className="bg-primary20 rounded-lg p-3 mb-4">
+              <Text className="text-primary100 font-sora text-xs">
+                Adding wallets to your folder
+              </Text>
+            </View>
+          )} */}
 
           {/* Main Content Area */}
           <View className={`flex-1 ${!isSearching ? 'justify-end' : ''}`}>
             {/* Selected Wallets - Visible only when searching and if any wallets are selected */}
             {isSearching && selectedWallets.length > 0 && (
-              <View className="flex-row flex-wrap mb-3 mt-"> {/* Adjusted mt-28 to ensure it's below the search bar */}
+              <View className="flex-row flex-wrap mb-3">
                 {selectedWallets.map(wallet => (
                   <View key={wallet.id} className="bg-primary100 flex-row items-center rounded-full px-3 py-1 mr-2 mb-2">
                     <Text className="text-black font-sora text-xs mr-2">{wallet.name}</Text>
@@ -359,7 +351,7 @@ export default function AddManually() {
                       style={{ opacity: searchOpacity, flex: 1 }}
                       className="text-white font-sora-bold text-base"
                     >
-                      What wallet would you like to add,{'\n'}John?
+                      What wallet would you like to add?
                     </Animated.Text>
                     <Animated.View style={{ opacity: searchOpacity }}>
                       <TouchableOpacity
@@ -392,13 +384,14 @@ export default function AddManually() {
             )}
           </View>
 
-          {/* Proceed Button - Updated visibility logic */}
+          {/* Proceed Button - Updated with loading state */}
           {(selectedWallets.length > 0 || (isSearching && searchQuery !== '')) && (
             <View className="pb-16">
               <Button
-                text="Proceed"
+                text={isSubmitting ? "Adding Wallets..." : `Add ${selectedWallets.length} Wallet(s)`}
                 onPress={handleProceed}
-                isDisabled={selectedWallets.length === 0}
+                isDisabled={selectedWallets.length === 0 || isSubmitting}
+                loading={isSubmitting}
               />
             </View>
           )}

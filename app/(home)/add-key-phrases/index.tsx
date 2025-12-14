@@ -3,6 +3,7 @@ import Button from '@/components/Button';
 import { usePhoneStore } from '@/store/usePhoneStore';
 import { useVaultStore } from '@/store/useVaultStore';
 import { encryptPhrases } from '@/utils/crypto';
+import { addWalletRecoveryData } from '@/utils/wallet-api'; // Import the API function
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -33,6 +34,11 @@ export default function AddKey() {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const { phoneNumber } = usePhoneStore();
   const { setFileId } = useVaultStore();
+
+  // Get the wallet and folder IDs from params
+  const walletId = params.walletId as string;
+  const walletFolderId = params.walletFolderId as string;
+  const walletName = params.walletName as string;
 
   const totalPages = selectedKeyType === '12' ? 1 : 2;
   const isFirstPage = page === 1;
@@ -133,6 +139,102 @@ export default function AddKey() {
       ? phrases.slice(0, 12).every(p => p.trim() !== '')
       : phrases.slice(0, 24).every(p => p.trim() !== '');
 
+  const handleSaveKeyPhrases = async () => {
+    try {
+      setIsLoading(true);
+      
+      if (!phoneNumber) {
+        Alert.alert('Error', 'Phone number is missing. Please sign in again.');
+        router.replace('/sign-in');
+        return;
+      }
+
+      // Validate required parameters
+      if (!walletId || !walletFolderId) {
+        Alert.alert('Error', 'Wallet information is missing. Please try again.');
+        return;
+      }
+
+      console.log('Saving key phrases for wallet:', {
+        walletId,
+        walletFolderId,
+        walletName,
+        keyType: selectedKeyType
+      });
+
+      // Process and encrypt phrases
+      const phrasesToProcess = selectedKeyType === '12' ? phrases.slice(0, 12) : phrases.slice(0, 24);
+      const SEPARATOR = '|||';
+      const phrasesString = phrasesToProcess.join(SEPARATOR);
+      const encryptedPhrases = await encryptPhrases(phrasesString, phoneNumber);
+      const metaString = `${selectedKeyType}${walletName}`;
+      const encryptedMeta = await encryptPhrases(metaString, phoneNumber);
+      const finalEncrypted = `${encryptedPhrases}${SEPARATOR}${encryptedMeta}`;
+
+      // Step 1: Save to vault
+      console.log('Saving encrypted phrases to vault...');
+      const response = await fetch('https://k33p-k33p-reir.onrender.com/api/v1/vault/store', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ encrypted_seed_phrase: finalEncrypted })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to save to vault: ${response.status}`);
+      }
+
+      const result = await response.json();
+      const fileId = result?.data?.file_id;
+
+      if (!fileId) {
+        throw new Error('No file ID received from server');
+      }
+
+      console.log('Successfully saved to vault, fileId:', fileId);
+      setFileId(fileId);
+
+      // Step 2: Update wallet with recovery data using wallet API
+      console.log('Updating wallet with recovery data...');
+      const updateResponse = await addWalletRecoveryData(
+        walletFolderId,
+        walletId,
+        {
+          keyType: selectedKeyType,
+          fileId: fileId
+        }
+      );
+
+      if (updateResponse.success) {
+        console.log('Wallet successfully updated with recovery data');
+        
+        // Navigate back to add-to-wallet screen with updated wallet data
+        router.push({
+          pathname: '/(home)/add-to-wallet',
+          params: {
+            updatedWallet: JSON.stringify({
+              id: walletId,
+              name: walletName,
+              keyType: selectedKeyType,
+              fileId: fileId,
+              folderId: walletFolderId
+            })
+          }
+        });
+      } else {
+        throw new Error(updateResponse.message || 'Failed to update wallet with recovery data');
+      }
+
+    } catch (err: any) {
+      console.error('Error saving key phrases:', err);
+      Alert.alert(
+        'Error', 
+        err.message || 'Failed to save wallet. Please try again.'
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View className="flex-1 px-5">
@@ -142,7 +244,7 @@ export default function AddKey() {
           </TouchableOpacity>
         </View>
 
-        <View className="flex-row mb-8 mt-3">
+        <View className="flex-row mb-2 mt-3">
           <TouchableOpacity
             className={`flex-1 py-3 rounded-xl ${selectedKeyType === '12' ? 'bg-white' : ''}`}
             onPress={() => {
@@ -213,52 +315,10 @@ export default function AddKey() {
           </ScrollView>
         </KeyboardAvoidingView>
 
-        <View className="pb-16">
+        <View className="pb-14">
           <Button
             text="Done"
-            onPress={async () => {
-              try {
-                setIsLoading(true);
-                if (!phoneNumber) {
-                  Alert.alert('Error', 'Phone number is missing. Please sign in again.');
-                  router.replace('/sign-in');
-                  return;
-                }
-                const phrasesToProcess = selectedKeyType === '12' ? phrases.slice(0, 12) : phrases.slice(0, 24);
-                const SEPARATOR = '|||';
-                const phrasesString = phrasesToProcess.join(SEPARATOR);
-                const encryptedPhrases = await encryptPhrases(phrasesString, phoneNumber);
-                const metaString = `${selectedKeyType}${params.walletName}`;
-                const encryptedMeta = await encryptPhrases(metaString, phoneNumber);
-                const finalEncrypted = `${encryptedPhrases}${SEPARATOR}${encryptedMeta}`;
-                const response = await fetch('https://k33p-k33p-reir.onrender.com/api/v1/vault/store', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ encrypted_seed_phrase: finalEncrypted })
-                });
-                if (!response.ok) throw new Error(`Failed to save to vault: ${response.status}`);
-                const result = await response.json();
-                const fileId = result?.data?.file_id;
-                if (!fileId) throw new Error('No file ID received from server');
-                setFileId(fileId);
-                router.push({
-                  pathname: '/(home)/add-to-wallet',
-                  params: {
-                    updatedWallet: JSON.stringify({
-                      id: params.walletId,
-                      name: params.walletName,
-                      keyType: selectedKeyType,
-                      fileId
-                    })
-                  }
-                });
-              } catch (err) {
-                console.error('Error:', err);
-                Alert.alert('Error', 'Failed to save wallet. Please try again.');
-              } finally {
-                setIsLoading(false);
-              }
-            }}
+            onPress={handleSaveKeyPhrases}
             isLoading={isLoading}
             isDisabled={!allPhrasesFilled}
           />

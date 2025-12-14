@@ -36,8 +36,23 @@ export { default as SIGN_IN_3 } from './sign-in3.svg';
 export { default as CLOSE } from './close.svg';
 export { default as FOLDER } from './folder.svg';
 export { default as INFO } from './info.svg';
+export { default as LOCK } from './lock.svg';
 export { default as PROFILE } from './profile.svg';
 export { default as SearchIcon } from './searchicon.svg';
 
+export { default as P_ONE_SELECTED } from './profileone-selected.svg';
+export { default as P_ONE } from './profileone.svg';
+export { default as P_THREE_SELECTED } from './profilethree-selected.svg';
+export { default as P_THREE } from './profilethree.svg';
+export { default as P_TWO_SELECTED } from './profiletwo-selected.svg';
+export { default as P_TWO } from './profiletwo.svg';
+
+export { default as NOK_LOCK } from './nok-lock.svg';
+
+export { default as FACE_KEEPLOCK } from './face-keeplock.svg';
+export { default as FINGERPRINT_KEEPLOCK } from './fingerprint-keeplock.svg';
+export { default as IRIS_KEEPLOCK } from './iris-keeplock.svg';
+export { default as PIN_KEEPLOCK } from './pin-keeplock.svg';
+export { default as VOICE_KEEPLOCK } from './voice-keeplock.svg';
 
 

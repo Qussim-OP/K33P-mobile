@@ -10,6 +10,7 @@ module.exports = {
         neutral800: '#0E0E0E',
         neutral100:'#B8B8B8',
         neutral200:'#969696',
+        neutral400:'#484848',
         success500:'#4CAF50',
         error500: '#F44336',
         mainBlack: '#1A1A1A',

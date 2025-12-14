@@ -202,7 +202,7 @@ export default function OTPEntryScreen() {
         {/* Dismiss Keypad Overlay */}
         {showKeypad && (
           <TouchableWithoutFeedback onPress={() => setShowKeypad(false)}>
-            <View className="absolute top-0 left-0 right-0 bottom-80 bg-transparent" />
+            <View className="absolute top-0 left-0 right-0 bottom-80 bg-transparent" style={{ bottom: 400 }}  />
           </TouchableWithoutFeedback>
         )}
 

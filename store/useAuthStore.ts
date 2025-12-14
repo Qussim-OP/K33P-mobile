@@ -3,6 +3,27 @@ import { useMemo } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
+// Add these new interfaces
+interface AuthMethod {
+  type: string;
+  data?: string;
+  createdAt: string;
+  lastUsed?: string;
+}
+
+interface UserData {
+  userId: string;
+  phoneNumber?: string;
+  walletAddress?: string;
+  verificationMethod: string;
+  zkCommitment?: string;
+  authMethods: AuthMethod[];
+  registeredAuthMethods: string[];
+  requiresDeposit: boolean;
+  isVerified: boolean;
+  message: string;
+}
+
 interface FaceData {
   token: string;
   analysis: {
@@ -57,9 +78,17 @@ interface BiometricSetup {
 }
 
 interface AuthState {
+  // Existing state
   isAuthenticated: boolean;
   faceData: FaceData | null;
   biometricSetup: BiometricSetup;
+  
+  // NEW: User data and auth methods
+  userData: UserData | null;
+  authMethods: AuthMethod[];
+  authToken: string | null;
+  
+  // Existing actions
   setFaceData: (data: FaceData) => void;
   setFingerprintComplete: () => void;
   setVoiceComplete: () => void;
@@ -68,6 +97,17 @@ interface AuthState {
   setIsAuthenticated: (value: boolean) => void;
   logStoreState: () => Promise<void>;
   getCompletedBiometrics: () => string[];
+  
+  // NEW: User data actions
+  setUserData: (userData: UserData) => void;
+  setAuthMethods: (authMethods: AuthMethod[]) => void;
+  setAuthToken: (token: string) => void;
+  clearUserData: () => void;
+  clearAuth: () => void;
+  
+  // NEW: Helper methods
+  hasAuthMethod: (methodType: string) => boolean;
+  getAuthMethod: (methodType: string) => AuthMethod | undefined;
 }
 
 const secureStorage = {
@@ -85,6 +125,7 @@ const secureStorage = {
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
+      // Existing state
       isAuthenticated: false,
       faceData: null,
       biometricSetup: {
@@ -93,6 +134,13 @@ export const useAuthStore = create<AuthState>()(
         voice: false,
         iris: false
       },
+      
+      // NEW state
+      userData: null,
+      authMethods: [],
+      authToken: null,
+
+      // Existing actions
       setFaceData: (data) => {
         console.log('Setting face data in store:', data);
         set({ 
@@ -128,7 +176,10 @@ export const useAuthStore = create<AuthState>()(
         console.log('Current auth store state:', {
           isAuthenticated: state.isAuthenticated,
           faceData: state.faceData,
-          biometricSetup: state.biometricSetup
+          biometricSetup: state.biometricSetup,
+          userData: state.userData,
+          authMethods: state.authMethods,
+          authToken: state.authToken ? '***' : null
         });
         
         try {
@@ -150,6 +201,58 @@ export const useAuthStore = create<AuthState>()(
         if (biometricSetup.voice) completed.push('Voice ID');
         if (biometricSetup.iris) completed.push('Iris Scan');
         return completed;
+      },
+
+      // NEW: User data actions
+      setUserData: (userData) => {
+        console.log('Setting user data in store:', {
+          userId: userData.userId,
+          authMethodsCount: userData.authMethods.length,
+          verificationMethod: userData.verificationMethod
+        });
+        set({ userData });
+      },
+      setAuthMethods: (authMethods) => {
+        console.log('Setting auth methods in store:', authMethods.map(m => m.type));
+        set({ authMethods });
+      },
+      setAuthToken: (token) => {
+        console.log('Setting auth token in store');
+        set({ authToken: token });
+      },
+      clearUserData: () => {
+        console.log('Clearing user data from store');
+        set({ 
+          userData: null, 
+          authMethods: [], 
+          authToken: null 
+        });
+      },
+      clearAuth: () => {
+        console.log('Clearing all auth data from store');
+        set({ 
+          isAuthenticated: false,
+          userData: null,
+          authMethods: [],
+          authToken: null,
+          faceData: null,
+          biometricSetup: {
+            face: false,
+            fingerprint: false,
+            voice: false,
+            iris: false
+          }
+        });
+      },
+
+      // NEW: Helper methods
+      hasAuthMethod: (methodType: string) => {
+        const { authMethods } = get();
+        return authMethods.some(method => method.type === methodType);
+      },
+      getAuthMethod: (methodType: string) => {
+        const { authMethods } = get();
+        return authMethods.find(method => method.type === methodType);
       }
     }),
     {
@@ -158,31 +261,63 @@ export const useAuthStore = create<AuthState>()(
       partialize: (state) => ({ 
         faceData: state.faceData,
         isAuthenticated: state.isAuthenticated,
-        biometricSetup: state.biometricSetup
+        biometricSetup: state.biometricSetup,
+        userData: state.userData,
+        authMethods: state.authMethods,
+        authToken: state.authToken
       }),
     }
   )
 );
 
-// Helper hooks
+// Existing helper hooks
 export const useFaceData = () => useAuthStore((state) => state.faceData);
 export const useSetFaceData = () => useAuthStore((state) => state.setFaceData);
 export const useSetFingerprintComplete = () => useAuthStore((state) => state.setFingerprintComplete);
 export const useSetVoiceComplete = () => useAuthStore((state) => state.setVoiceComplete);
 export const useSetIrisComplete = () => useAuthStore((state) => state.setIrisComplete);
 export const useLogAuthStore = () => useAuthStore((state) => state.logStoreState);
+
+// NEW helper hooks
+export const useUserData = () => useAuthStore((state) => state.userData);
+export const useAuthMethods = () => useAuthStore((state) => state.authMethods);
+export const useAuthToken = () => useAuthStore((state) => state.authToken);
+export const useSetUserData = () => useAuthStore((state) => state.setUserData);
+export const useSetAuthMethods = () => useAuthStore((state) => state.setAuthMethods);
+export const useSetAuthToken = () => useAuthStore((state) => state.setAuthToken);
+export const useClearUserData = () => useAuthStore((state) => state.clearUserData);
+export const useClearAuth = () => useAuthStore((state) => state.clearAuth);
+export const useHasAuthMethod = () => useAuthStore((state) => state.hasAuthMethod);
+export const useGetAuthMethod = () => useAuthStore((state) => state.getAuthMethod);
+
 // store/useAuthStore.ts
 export const useCompletedBiometrics = () => {
-    // Get the raw biometric setup from store
-    const biometricSetup = useAuthStore(state => state.biometricSetup);
-    
-    // Calculate completed biometrics based on setup
-    return useMemo(() => {
-      const completed: string[] = [];
-      if (biometricSetup.face) completed.push('Face I.D');
-      if (biometricSetup.fingerprint) completed.push('Fingerprint');
-      if (biometricSetup.voice) completed.push('Voice ID');
-      if (biometricSetup.iris) completed.push('Iris Scan');
-      return completed;
-    }, [biometricSetup]);
-  };
+  // Get the raw biometric setup from store
+  const biometricSetup = useAuthStore(state => state.biometricSetup);
+  
+  // Calculate completed biometrics based on setup
+  return useMemo(() => {
+    const completed: string[] = [];
+    if (biometricSetup.face) completed.push('Face I.D');
+    if (biometricSetup.fingerprint) completed.push('Fingerprint');
+    if (biometricSetup.voice) completed.push('Voice ID');
+    if (biometricSetup.iris) completed.push('Iris Scan');
+    return completed;
+  }, [biometricSetup]);
+};
+
+// NEW: Helper hook to check if user requires phone verification
+export const useRequiresPhoneVerification = () => {
+  const userData = useUserData();
+  return useMemo(() => {
+    return userData?.requiresDeposit || false;
+  }, [userData]);
+};
+
+// NEW: Helper hook to get available auth method types
+export const useAvailableAuthMethods = () => {
+  const authMethods = useAuthMethods();
+  return useMemo(() => {
+    return authMethods.map(method => method.type);
+  }, [authMethods]);
+};

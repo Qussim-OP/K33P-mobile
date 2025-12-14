@@ -193,12 +193,18 @@ export default function PinSetupScreen() {
           />
         </View>
 
-        {/* Dismiss Keypad Area (Covers area above keypad) */}
         {showKeypad && (
-          <TouchableWithoutFeedback onPress={() => setShowKeypad(false)}>
-            <View className="absolute top-0 left-0 right-0 bottom-80 bg-transparent" />
-          </TouchableWithoutFeedback>
-        )}
+        <TouchableWithoutFeedback
+          onPress={() => {
+            setShowKeypad(false);
+          }}
+        >
+          <View 
+            className="absolute top-0 left-0 right-0"
+            style={{ bottom: 400 }}
+          />
+        </TouchableWithoutFeedback>
+      )}
 
         {/* Custom Keypad */}
         <NumericKeypad
