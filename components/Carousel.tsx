@@ -1,19 +1,27 @@
-import ArrowLeft from '@/assets/images/left.png';
-import ArrowRight from '@/assets/images/right.png';
-import Button from '@/components/Button';
+// components/Carousel.tsx
+import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useRef, useState } from 'react';
 import {
-    Dimensions,
-    FlatList,
-    Image,
-    Modal,
-    Pressable,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Dimensions,
+  FlatList,
+  Image,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
-interface Slide {
+// Import your images
+import SlideImg1 from '../assets/images/carouselImage.png';
+import SlideImg3 from '../assets/images/carouselImage2.png';
+import SlideImg2 from '../assets/images/carouselImage3.png';
+import slideImage2 from '../assets/images/slide1.png';
+import slideImage1 from '../assets/images/slide2.png';
+import slideImage3 from '../assets/images/slide3.png';
+
+const { width: screenWidth } = Dimensions.get('window');
+
+export interface Slide {
   id: number;
   image: any;
   label: string;
@@ -22,21 +30,49 @@ interface Slide {
   modalImage: any;
 }
 
-interface SupportCarouselProps {
-  slides: Slide[];
+export interface CarouselProps {
+  slides?: Slide[];
+  onSlidePress?: (slide: Slide) => void;
 }
 
-const { width: screenWidth } = Dimensions.get('window');
+const defaultSlides: Slide[] = [
+  {
+    id: 1,
+    image: SlideImg1,
+    label: 'What is K33P?',
+    headline: 'Decentralized digital safe for your Key-phrases.',
+    description: 'A decentralized digital vault designed to securely store and protect your key-phrases. No central authority, no single point of failure. Your sensitive recovery phrases stay private, encrypted, and accessible only to you. Built for privacy-focused users who value full control over their digital identity and crypto security.',
+    modalImage: slideImage1
+  },
+  {
+    id: 2,
+    image: SlideImg2,
+    label: 'Why K33P?',
+    headline: 'Lifetime access to key phrases + NOK Setup.',
+    description: 'Secure lifetime access to your key phrases with optional Next of Kin (NOK) setup. Ensure your digital assets are protected and accessible when needed  by you or someone you trust. A privacy-first solution built for security, continuity, and peace of mind.',
+    modalImage: slideImage2
+  },
+  {
+    id: 3,
+    image: SlideImg3,
+    label: 'How to get started with K33P?',
+    headline: 'Deposit 2ADA, Create DID, Take back your 2ADA.',
+    description: 'Deposit 2 ADA to create your Decentralized Identifier (DID). Once your DID is successfully created, you can retrieve your 2 ADA  no fees, no strings attached. A secure, trustless way to establish your digital identity on-chain.',
+    modalImage: slideImage3
+  },
+];
+
 const ITEM_WIDTH = screenWidth * 0.91;
 const ITEM_SPACING = screenWidth * 0.02;
 
-const SupportCarousel: React.FC<SupportCarouselProps> = ({ slides }) => {
+const Carousel: React.FC<CarouselProps> = ({ 
+  slides = defaultSlides, 
+  onSlidePress 
+}) => {
   const [current, setCurrent] = useState(0);
-  const [carouselModalVisible, setCarouselModalVisible] = useState(false);
-  const [selectedSlide, setSelectedSlide] = useState<Slide | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
-  const onViewRef = useRef(({ viewableItems }: { viewableItems: any[] }) => {
+  const onViewRef = useRef(({ viewableItems }) => {
     if (viewableItems.length > 0) {
       setCurrent(viewableItems[0].index);
     }
@@ -54,24 +90,20 @@ const SupportCarousel: React.FC<SupportCarouselProps> = ({ slides }) => {
     flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
   }, [current, slides.length]);
 
-  const openCarouselModal = useCallback((item: Slide) => {
-    setSelectedSlide(item);
-    setCarouselModalVisible(true);
-  }, []);
+  const handleSlidePress = useCallback((item: Slide) => {
+    if (onSlidePress) {
+      onSlidePress(item);
+    }
+  }, [onSlidePress]);
 
-  const closeCarouselModal = useCallback(() => {
-    setCarouselModalVisible(false);
-    setSelectedSlide(null);
-  }, []);
-
-  const renderItem = useCallback(({ item, index }: { item: Slide; index: number }) => (
+  const renderItem = useCallback(({ item, index }) => (
     <TouchableOpacity
       activeOpacity={0.8}
-      onPress={() => openCarouselModal(item)}
+      onPress={() => handleSlidePress(item)}
       style={{
         width: ITEM_WIDTH,
         marginRight: ITEM_SPACING,
-        backgroundColor: '#121212',
+        backgroundColor: '#222222',
         borderRadius: 12,
         padding: 8,
         flexDirection: 'row',
@@ -106,103 +138,74 @@ const SupportCarousel: React.FC<SupportCarouselProps> = ({ slides }) => {
         </Text>
       </View>
     </TouchableOpacity>
-  ), [current, openCarouselModal]);
+  ), [current, handleSlidePress]);
 
   return (
-    <>
-      <View>
-        <FlatList
-          ref={flatListRef}
-          data={slides}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={renderItem}
-          snapToInterval={ITEM_WIDTH + ITEM_SPACING}
-          decelerationRate="fast"
-          snapToAlignment="start"
-          initialScrollIndex={0}
-          getItemLayout={(data, index) => ({
-            length: ITEM_WIDTH + ITEM_SPACING,
-            offset: (ITEM_WIDTH + ITEM_SPACING) * index,
-            index,
-          })}
-          contentContainerStyle={{ paddingLeft: 20, paddingRight: ITEM_SPACING }}
-          onViewableItemsChanged={onViewRef.current}
-          viewabilityConfig={viewConfigRef.current}
-          pagingEnabled={false}
-        />
+    <View style={{ marginTop: 5 }}>
+      <FlatList
+        ref={flatListRef}
+        data={slides}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={renderItem}
+        snapToInterval={ITEM_WIDTH + ITEM_SPACING}
+        decelerationRate="fast"
+        snapToAlignment="start"
+        initialScrollIndex={0}
+        getItemLayout={(data, index) => ({
+          length: ITEM_WIDTH + ITEM_SPACING,
+          offset: (ITEM_WIDTH + ITEM_SPACING) * index,
+          index,
+        })}
+        contentContainerStyle={{ paddingLeft: 20, paddingRight: ITEM_SPACING }}
+        onViewableItemsChanged={onViewRef.current}
+        viewabilityConfig={viewConfigRef.current}
+        pagingEnabled={false}
+      />
 
-        <View className="flex-row items-center justify-between px-6 mt-6">
-          <TouchableOpacity onPress={prevSlide}>
-            <Image 
-              source={ArrowLeft} 
-              style={{ opacity: current === 0 ? 0.5 : 1 }}
+      <View className="flex-row items-center justify-between px-6 mt-6">
+        <TouchableOpacity
+          onPress={prevSlide}
+          activeOpacity={0.7}
+          disabled={current === 0}
+        >
+          <Ionicons
+            name="chevron-back-outline"
+            size={24}
+            color={current === 0 ? '#555' : '#fff'}
+          />
+        </TouchableOpacity>
+
+        <View className="flex-row gap-3 items-center">
+          {slides.map((_, index) => (
+            <Animated.View
+              key={index}
+              style={{
+                width: index === current ? 16 : 8,
+                height: 8,
+                borderRadius: 8,
+                backgroundColor: index === current ? '#FFD939' : '#666',
+                transition: 'width 0.25s ease-in-out',
+              }}
             />
-          </TouchableOpacity>
-
-          <View className="flex-row gap-3 items-center ">
-            {slides.map((_, index) => (
-              <View
-                key={index}
-                className={`rounded-full ${
-                  index === current ? 'bg-main w-4 h-2' : 'bg-neutral100 w-2 h-2'
-                }`}
-              />
-            ))}
-          </View>
-
-          <TouchableOpacity onPress={nextSlide}>
-            <Image 
-              source={ArrowRight} 
-              style={{ opacity: current === slides.length - 1 ? 0.5 : 1 }}
-            />
-          </TouchableOpacity>
+          ))}
         </View>
+
+        <TouchableOpacity
+          onPress={nextSlide}
+          activeOpacity={0.7}
+          disabled={current === slides.length - 1}
+        >
+          <Ionicons
+            name="chevron-forward-outline"
+            size={24}
+            color={current === slides.length - 1 ? '#555' : '#fff'}
+          />
+        </TouchableOpacity>
       </View>
-
-      {/* Carousel Item Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={carouselModalVisible}
-        onRequestClose={closeCarouselModal}
-      >
-        <Pressable 
-          onPress={closeCarouselModal} 
-          className="absolute inset-0 bg-black/80"
-        />
-        <View className="absolute bottom-0 w-full bg-mainBlack rounded-t-3xl" style={{ height: '70%' }}>
-          {selectedSlide && (
-            <>
-              <Image
-                source={selectedSlide.modalImage}
-                className="w-full h-[30%] object-cover rounded-t-3xl"
-              />
-              <View className="px-6 py-4">
-                <Text className="text-neutral100 font-space-mono text-sm mb-2">
-                  {selectedSlide.label}
-                </Text>
-                <Text className="text-white font-sora-bold text-lg mb-2">
-                  {selectedSlide.headline}
-                </Text>
-                <Text className="text-neutral200 font-sora text-sm">
-                  {selectedSlide.description}
-                </Text>
-              </View>
-              <View className="absolute bottom-6 left-0 right-0 px-6">
-                <Button 
-                  text="Close" 
-                  onPress={closeCarouselModal}
-                  outline
-                />
-              </View>
-            </>
-          )}
-        </View>
-      </Modal>
-    </>
+    </View>
   );
 };
 
-export default SupportCarousel;
+export default Carousel;

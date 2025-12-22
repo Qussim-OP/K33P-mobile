@@ -37,7 +37,7 @@ export default function PhoneEntryScreen() {
 
   const handlePhoneChange = (text: string) => {
     const cleanedNumber = text.replace(/\D/g, '');
-    setPhoneNumber(cleanedNumber); // Use the store setter
+    setPhoneNumber(cleanedNumber);
     setIsValid(cleanedNumber.length === 13);
     setIsTouched(true);
   };
@@ -60,7 +60,7 @@ export default function PhoneEntryScreen() {
   }, [phoneNumber]);
 
   const handleBackspace = () => {
-    const newNumber = phoneNumber.slice(0, -1); // Use the store value
+    const newNumber = phoneNumber.slice(0, -1);
     setPhoneNumber(newNumber); 
     setIsValid(newNumber.length === 13);
     setIsTouched(true);
@@ -68,7 +68,12 @@ export default function PhoneEntryScreen() {
 
   const handleProceed = () => {
     console.log('Entered phone number:', formattedNumber);
-    router.push('/sign-up/otp');
+    // Dismiss keyboard first, then navigate
+    setShowKeypad(false);
+    setIsFocused(false);
+    setTimeout(() => {
+      router.push('/sign-up/otp');
+    }, 100);
   };
 
   const showError = isTouched && !isValid && phoneNumber.length > 0;
@@ -79,15 +84,14 @@ export default function PhoneEntryScreen() {
       <View className="relative flex-row items-center justify-start mb-12">
         <TouchableOpacity className="z-10" onPress={() => router.back()}>
           <BackIcon width={40} height={40} />
-
         </TouchableOpacity>
         <Lock_1 
-        style={{
-          position: 'absolute',
-          left: '50%',
-          transform: [{ translateX: '-50%' }]
-        }}
-      />
+          style={{
+            position: 'absolute',
+            left: '50%',
+            transform: [{ translateX: '-50%' }]
+          }}
+        />
       </View>
 
       {/* Content */}
@@ -116,7 +120,7 @@ export default function PhoneEntryScreen() {
               keyboardType="phone-pad"
               value={formattedNumber}
               onChangeText={handlePhoneChange}
-              maxLength={18} // +xxx-xxx-xxxx-xxx is 18 characters
+              maxLength={18}
               showSoftInputOnFocus={false}
               onFocus={() => {
                 setShowKeypad(true);
@@ -138,11 +142,11 @@ export default function PhoneEntryScreen() {
         <Button
           text="Proceed"
           onPress={handleProceed}
-          isDisabled={!isValid }
+          isDisabled={!isValid}
         />
       </View>
 
-      {/* Dismiss Keypad Overlay */}
+      {/* Dismiss Keypad Overlay - FIXED: Only cover area above keypad */}
       {showKeypad && (
         <TouchableWithoutFeedback
           onPress={() => {
@@ -150,11 +154,12 @@ export default function PhoneEntryScreen() {
             setIsFocused(false);
           }}
         >
-          <View className="absolute top-0 left-0 right-0 bottom-80" />
+          <View 
+            className="absolute top-0 left-0 right-0"
+            style={{ bottom: 400 }} // Adjust this value based on your keypad height
+          />
         </TouchableWithoutFeedback>
       )}
-
-      
 
       {/* Custom Numeric Keypad */}
       <NumericKeypad

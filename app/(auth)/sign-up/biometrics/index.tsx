@@ -100,7 +100,8 @@ export default function Biometrics() {
   }, [showUnavailableMessage]);
 
   const handleMethodPress = (route: string) => {
-    if (route.includes('voiceid') || route.includes('iris')) {
+    if (route.includes('voiceid') || route.includes('iris') || route.includes('facescan')) {
+      
       setShowUnavailableMessage(true);
     } else {
       router.push(route);

@@ -1,57 +1,56 @@
-import aes from 'react-native-aes-crypto';
-import { pbkdf2Sync, randomBytes } from 'react-native-randombytes';
+import CryptoJS from 'crypto-js';
 
-const SECRET_KEY = process.env.ENCRYPTION_SECRET || 'your-secure-default-key';
-const SALT = 'static-salt-value'; // Should be constant for PBKDF2
+const PHONE_ENCRYPTION_KEY = 'K33P2024SECUREKEY1234567890ABCDEF';
+const FIXED_IV = '0000000000000000';
 
-export const generateUserSpecificKey = (userId: string, pin: string): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    try {
-      const key = pbkdf2Sync(
-        `${userId}${pin}`,
-        SALT,
-        1000,
-        256/8,
-        'sha256'
-      ).toString('hex');
-      resolve(key);
-    } catch (error) {
-      reject(error);
-    }
-  });
-};
-
-export const encryptPhoneNumber = async (phoneNumber: string, key: string): Promise<string> => {
+/**
+ * Deterministic AES-256-CBC encryption
+ */
+export const encryptPhoneData = (phoneNumber: string): string => {
   try {
-    const iv = randomBytes(16).toString('hex');
-    const cipher = await aes.encrypt(phoneNumber, key, iv, 'aes-256-cbc');
-    return `${iv}:${cipher}`; // Store IV with ciphertext
+    const key = CryptoJS.enc.Utf8.parse(PHONE_ENCRYPTION_KEY);
+    const iv = CryptoJS.enc.Utf8.parse(FIXED_IV);
+
+    const encrypted = CryptoJS.AES.encrypt(
+      CryptoJS.enc.Utf8.parse(phoneNumber),
+      key,
+      {
+        iv,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7,
+      }
+    );
+
+    // Return ciphertext only (Base64)
+    return CryptoJS.enc.Base64.stringify(encrypted.ciphertext);
   } catch (error) {
-    console.error('Error encrypting phone number:', error);
-    throw new Error('Failed to encrypt phone number');
+    console.error('Error encrypting phone data:', error);
+    throw new Error('Failed to encrypt phone data');
   }
 };
 
-export const decryptPhoneNumber = async (encryptedPhone: string, key: string): Promise<string> => {
+/**
+ * Deterministic AES-256-CBC decryption
+ */
+export const decryptPhoneData = (encryptedData: string): string => {
   try {
-    const [iv, cipher] = encryptedPhone.split(':');
-    if (!iv || !cipher) throw new Error('Invalid encrypted data format');
-    
-    const decrypted = await aes.decrypt(cipher, key, iv, 'aes-256-cbc');
-    if (!decrypted) throw new Error('Decryption failed - empty result');
-    return decrypted;
-  } catch (error) {
-    console.error('Error decrypting phone number:', error);
-    throw new Error('Failed to decrypt phone number');
-  }
-};
+    const key = CryptoJS.enc.Utf8.parse(PHONE_ENCRYPTION_KEY);
+    const iv = CryptoJS.enc.Utf8.parse(FIXED_IV);
 
-export const getEncryptedPhone = async (phoneNumber: string, userId: string, pin: string): Promise<string> => {
-  try {
-    const key = await generateUserSpecificKey(userId, pin);
-    return await encryptPhoneNumber(phoneNumber, key);
+    // Construct proper CipherParams object for TypeScript
+    const cipherParams = CryptoJS.lib.CipherParams.create({
+      ciphertext: CryptoJS.enc.Base64.parse(encryptedData),
+    });
+
+    const decrypted = CryptoJS.AES.decrypt(cipherParams, key, {
+      iv,
+      mode: CryptoJS.mode.CBC,
+      padding: CryptoJS.pad.Pkcs7,
+    });
+
+    return decrypted.toString(CryptoJS.enc.Utf8);
   } catch (error) {
-    console.error('Error getting encrypted phone:', error);
-    throw error;
+    console.error('Error decrypting phone data:', error);
+    throw new Error('Failed to decrypt phone data');
   }
 };

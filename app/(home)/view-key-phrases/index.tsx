@@ -13,15 +13,13 @@ import {
   View
 } from 'react-native';
 
+import { BackIcon } from '@/assets/images/svg';
 import { decryptPhrases } from '@/utils/crypto';
 import CopyIcon from '../../../assets/images/Copy.png';
 import EyeClosedIcon from '../../../assets/images/eye-closed.png';
 import EyeIcon from '../../../assets/images/eye.png';
 import ArrowLeft from '../../../assets/images/left.png';
 import ArrowRight from '../../../assets/images/right.png';
-import { BackIcon } from '@/assets/images/svg';
-
-
 
 interface VaultRetrieveResponse {
   status: string;
@@ -45,7 +43,6 @@ export default function ViewKey() {
   const [error, setError] = useState<string | null>(null);
   const [isConcealed, setIsConcealed] = useState<boolean>(true);
   const [copiedFeedback, setCopiedFeedback] = useState<boolean>(false);
-
 
   const totalPages = keyCount === '12' ? 1 : 2;
   const isFirstPage = page === 1;
@@ -103,6 +100,7 @@ export default function ViewKey() {
           const extractedWalletName = decryptedMetaString.slice(2);
 
           setKeyCount(extractedKeyCount);
+          // Set displayedKeyType to match the actual key count
           setDisplayedKeyType(extractedKeyCount as '12' | '24');
           setWalletName(extractedWalletName);
           setPhrases(phrasesArray);
@@ -122,13 +120,13 @@ export default function ViewKey() {
     retrieveAndDecrypt();
   }, [params.fileId, phoneNumber, router]);
 
+  // Only allow switching to tabs that match the actual key count
   const handleKeyTypeSwitch = (type: '12' | '24') => {
-    if (type === '12' || (type === '24' && keyCount === '24')) {
+    if (type === keyCount) {
       setDisplayedKeyType(type);
       setPage(1);
-    } else {
-      Alert.alert("Info", `This wallet has only ${keyCount} keys.`);
     }
+    // If user tries to switch to a tab that doesn't match keyCount, do nothing
   };
 
   const getStartEndIndex = () => {
@@ -189,12 +187,11 @@ export default function ViewKey() {
     }, 2000);
   };
 
-
   if (loading) {
     return (
       <View className="flex-1 justify-center items-center">
         <ActivityIndicator size="large" color="#FFD700" />
-        <Text className="text-white mt-4">Loading key phrases...</Text>
+        <Text className="text-white mt-4 font-sora">Loading key phrases...</Text>
       </View>
     );
   }
@@ -223,13 +220,15 @@ export default function ViewKey() {
           className={`flex-1 py-3 rounded-xl ${
             displayedKeyType === '12' ? 'bg-white' : ''
           }`}
-          onPress={() => handleKeyTypeSwitch('12')}
+          disabled={keyCount !== '12'} // Disable if not 12-key wallet
         >
           <Text
             className={`text-center font-sora ${
               displayedKeyType === '12'
                 ? 'text-black font-sora-semibold'
-                : 'text-neutral200'
+                : keyCount === '12' 
+                  ? 'text-neutral200' 
+                  : 'text-neutral200' // Dimmed text for disabled tab
             }`}
           >
             12 Keys
@@ -240,14 +239,15 @@ export default function ViewKey() {
           className={`flex-1 py-3 rounded-xl ${
             displayedKeyType === '24' ? 'bg-white' : ''
           }`}
-          onPress={() => handleKeyTypeSwitch('24')}
-          disabled={keyCount === '12'}
+          disabled={keyCount !== '24'} // Disable if not 24-key wallet
         >
           <Text
             className={`text-center font-sora ${
               displayedKeyType === '24'
                 ? 'text-black font-sora-semibold'
-                : 'text-neutral200'
+                : keyCount === '24'
+                  ? 'text-neutral200'
+                  : 'text-neutral200' // Dimmed text for disabled tab
             }`}
           >
             24 Keys
@@ -298,7 +298,8 @@ export default function ViewKey() {
           )}
         </View>
 
-        {displayedKeyType === '24' && (
+        {/* Only show pagination for 24-key wallets when viewing 24-key tab */}
+        {keyCount === '24' && displayedKeyType === '24' && (
           <View className="flex-row items-center justify-between mt-10 px-4">
             <TouchableOpacity onPress={() => setPage(1)} disabled={isFirstPage}>
               <Image source={ArrowLeft} style={{ opacity: isFirstPage ? 0.5 : 1 }} />

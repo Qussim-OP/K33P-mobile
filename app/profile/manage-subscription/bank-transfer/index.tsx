@@ -98,7 +98,7 @@ export default function Bank() {
           onPress={copyAccountNumber}
         >
           {copied ? (
-            <AntDesign name="checkcircle" size={16} color="#FFD700" />
+            <AntDesign name="check-circle" size={16} color="#FFD700" />
           ) : (
             <MaterialIcons name="content-copy" size={16} color="#FFD700" />
           )}

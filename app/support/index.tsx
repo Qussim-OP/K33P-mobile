@@ -727,7 +727,7 @@ export default function SupportScreen() {
                     {selectedSlide.description}
                   </Text>
                 </View>
-                <View className="absolute bottom-6 left-0 right-0 px-6">
+                <View className="absolute bottom-16 left-0 right-0 px-6">
                   <Button 
                     text="Close" 
                     onPress={closeCarouselModal}

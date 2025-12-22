@@ -1,7 +1,9 @@
 import { BackIcon, SIGN_IN_0 } from '@/assets/images/svg';
 import Button from '@/components/Button';
 import NumericKeypad from '@/components/Keypad';
+import { AuthMethod, useAuthStore } from '@/store/useAuthMethod';
 import { usePhoneStore } from '@/store/usePhoneStore';
+import { encryptPhoneData } from '@/utils/phoneEncyption';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Keyboard, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
@@ -14,6 +16,15 @@ export default function PhoneEntryScreen() {
     setPhoneNumber, 
     setFormattedNumber, 
   } = usePhoneStore();
+
+  // Get all store methods from auth store
+  const { 
+    setUserAuthMethods, 
+    setUserId, 
+    setWalletAddress, 
+    setUsername,
+    setToken 
+  } = useAuthStore();
 
   const [isValid, setIsValid] = useState(false);
   const [isTouched, setIsTouched] = useState(false);
@@ -49,7 +60,7 @@ export default function PhoneEntryScreen() {
     setPhoneNumber(cleanedNumber);
     setIsValid(cleanedNumber.length === 13);
     setIsTouched(true);
-    setError(null); // Clear error when user types
+    setError(null);
   };
 
   const handleKeyPress = (num: string) => {
@@ -58,7 +69,7 @@ export default function PhoneEntryScreen() {
       setPhoneNumber(newNumber);
       setIsValid(newNumber.length === 13);
       setIsTouched(true);
-      setError(null); // Clear error when user types
+      setError(null);
     }
   };
 
@@ -67,34 +78,73 @@ export default function PhoneEntryScreen() {
     setPhoneNumber(newNumber);
     setIsValid(newNumber.length === 13);
     setIsTouched(true);
-    setError(null); // Clear error when user types
+    setError(null);
   };
 
-  const checkUserExists = async (): Promise<boolean> => {
+  const findUser = async (): Promise<boolean> => {
     try {
       setIsLoading(true);
       setError(null);
       
-      const response = await fetch('https://k33p-backend-i9kj.onrender.com/api/zk/login-with-pin', {
+      // Encrypt phone number for lookup using deterministic encryption
+      const phoneHash = encryptPhoneData(phoneNumber);
+      console.log('Encrypted phone number:', phoneHash);
+      
+      
+      console.log('Finding user with encrypted phone:', phoneHash.substring(0, 20) + '...');
+      
+      const response = await fetch('https://k33p-backend-i9kj.onrender.com/api/zk/find-user', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          phoneNumber: formattedNumber
+          phoneHash: phoneHash
         }),
       });
 
       const data = await response.json();
+      console.log('Find user response:', data);
       
-      if (data.success) {
+      if (data.success && data.data) {
+        // Store user data for later use in login
+        const userData = data.data;
+        
+        // Store auth methods for login comparison
+        if (userData.authMethods && Array.isArray(userData.authMethods)) {
+          setUserAuthMethods(userData.authMethods);
+          console.log('✅ Stored auth methods for login:', userData.authMethods.map((method: AuthMethod) => method.type));
+        }
+        
+        // Store other user data
+        if (userData.userId) {
+          setUserId(userData.userId);
+        }
+        
+        if (userData.walletAddress) {
+          setWalletAddress(userData.walletAddress);
+        }
+
+        // Store username if available in response
+        if (userData.username) {
+          setUsername(userData.username);
+          console.log('✅ Stored username:', userData.username);
+        }
+        
+        console.log('✅ User found:', {
+          userId: userData.userId,
+          authMethodsCount: userData.authMethods?.length,
+          walletAddress: userData.walletAddress,
+          username: userData.username || 'Not provided'
+        });
+        
         return true;
       } else {
         setError(data.error?.message || 'User not found');
         return false;
       } 
     } catch (error) {
-      console.error('Error checking user:', error);
+      console.error('Error finding user:', error);
       setError('Network error. Please try again.');
       return false;
     } finally {
@@ -105,13 +155,13 @@ export default function PhoneEntryScreen() {
   const handleProceed = async () => {
     if (!isValid) return;
 
-    /* const userExists = await checkUserExists();
-    if (userExists) {
+    const userFound = await findUser();
+    if (userFound) {
       console.log('User found, proceeding to OTP:', formattedNumber);
       router.push('/sign-in/otp');
-    } */
-    router.push('/sign-in/otp');
-
+    } else {
+      console.log('User not found, showing error');
+    }
   };
 
   const handleNOK = () => {
@@ -198,13 +248,13 @@ export default function PhoneEntryScreen() {
       </View>
 
       {/* Footer */}
-      <View className={`pb-5 ${showKeypad ? 'mb-80' : ''}`}>
+      <View className={`pb-5 ${showKeypad ? 'mb-80' : 'mb-14'}`}>
         <Button
-          text={isLoading ? "Checking..." : "Proceed"}
+          text={isLoading ? "Finding User..." : "Proceed"}
           onPress={handleProceed}
           isDisabled={!isValid || isLoading}
         />
-
+{/* 
         {showNOKButton && (
           <View className='mt-5 mb-8'>
             <Button
@@ -213,7 +263,7 @@ export default function PhoneEntryScreen() {
               outline
             />
           </View>
-        )}
+        )} */}
       </View>
 
       {/* Dismiss Keypad Overlay */}
@@ -224,7 +274,7 @@ export default function PhoneEntryScreen() {
             setIsFocused(false);
           }}
         >
-          <View className="absolute top-0 left-0 right-0 bottom-80" />
+          <View className="absolute top-0 left-0 right-0 bottom-80"  style={{ bottom: 400 }} />
         </TouchableWithoutFeedback>
       )}
 

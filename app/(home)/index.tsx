@@ -1,11 +1,11 @@
 import Button from '@/components/Button';
+import Carousel, { Slide } from '@/components/Carousel';
+import { useAuthStore } from '@/store/useAuthMethod';
+import { getUsername, isTokenExpired } from '@/utils/api'; // Import getUsername
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
-  Animated,
-  Dimensions,
-  FlatList,
   Image,
   Modal,
   Pressable,
@@ -16,51 +16,9 @@ import {
 
 import { usePhoneStore } from '@/store/usePhoneStore';
 import { usePinStore } from '@/store/usePinStore';
-import { getStoredWallets } from '@/utils/storage';
+import { createFolder, getWalletFolders } from '@/utils/wallet-api';
 
 import { INFO, PROFILE } from '@/assets/images/svg';
-import { useUserStore } from '@/store/userStore';
-import { Ionicons } from '@expo/vector-icons';
-import SlideImg1 from '../../assets/images/carouselImage.png';
-import SlideImg3 from '../../assets/images/carouselImage2.png';
-import SlideImg2 from '../../assets/images/carouselImage3.png';
-import slideImage2 from '../../assets/images/slide1.png';
-import slideImage1 from '../../assets/images/slide2.png';
-import slideImage3 from '../../assets/images/slide3.png';
-
-const { width: screenWidth } = Dimensions.get('window');
-
-const slides = [
-  {
-    id: 1,
-    image: SlideImg1,
-    label: 'What is K33P?',
-    headline: 'Decentralized digital safe for your Key-phrases.',
-    description: 'A decentralized digital vault designed to securely store and protect your key-phrases. No central authority, no single point of failure. Your sensitive recovery phrases stay private, encrypted, and accessible only to you. Built for privacy-focused users who value full control over their digital identity and crypto security.',
-    modalImage: slideImage1
-  },
-  {
-    id: 2,
-    image: SlideImg2,
-    label: 'Why K33P?',
-    headline: 'Lifetime access to key phrases + NOK Setup.',
-    description: 'Secure lifetime access to your key phrases with optional Next of Kin (NOK) setup. Ensure your digital assets are protected and accessible when needed  by you or someone you trust. A privacy-first solution built for security, continuity, and peace of mind.',
-    modalImage: slideImage2
-
-  },
-  {
-    id: 3,
-    image: SlideImg3,
-    label: 'How to get started with K33P?',
-    headline: 'Deposit 2ADA, Create DID, Take back your 2ADA.',
-    description: 'Deposit 2 ADA to create your Decentralized Identifier (DID). Once your DID is successfully created, you can retrieve your 2 ADA  no fees, no strings attached. A secure, trustless way to establish your digital identity on-chain.',
-    modalImage: slideImage3
-
-  },
-];
-
-const ITEM_WIDTH = screenWidth * 0.91;
-const ITEM_SPACING = screenWidth * 0.02;
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -68,18 +26,203 @@ const getGreeting = () => {
   if (hour < 18) return 'Good afternoon';
   return 'Good evening';
 };
+
 export default function Index() {
-  const [current, setCurrent] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
   const [carouselModalVisible, setCarouselModalVisible] = useState(false);
-  const [selectedSlide, setSelectedSlide] = useState(null);
+  const [selectedSlide, setSelectedSlide] = useState<Slide | null>(null);
   const [isStoreHydrated, setIsStoreHydrated] = useState(false);
+  const [isCheckingWallets, setIsCheckingWallets] = useState(true);
+  const [defaultFolderId, setDefaultFolderId] = useState<string | null>(null);
+  const [isFetchingUsername, setIsFetchingUsername] = useState(false);
+  const [scanDeviceMessage, setScanDeviceMessage] = useState(false); // State for scan device message
+  
   const router = useRouter();
-  const flatListRef = useRef(null);
-  const name = useUserStore((state) => state.name);
+  const { username, token, clearAuthData, setUsername } = useAuthStore();
 
   const { phoneNumber } = usePhoneStore();
   const { pin, hasPin } = usePinStore();
+
+  // Fetch username from API if it's empty in store
+  const fetchUsernameFromAPI = async () => {
+    if (!isStoreHydrated || username) return; // Skip if we already have a username
+
+    console.log('HomeScreen - Username is empty in store, fetching from API...');
+    setIsFetchingUsername(true);
+    
+    try {
+      const userData = await getUsername();
+      
+      if (userData && userData.username) {
+        console.log('HomeScreen - Username fetched from API:', userData.username);
+        setUsername(userData.username);
+      } else if (userData && !userData.username) {
+        console.log('HomeScreen - User exists but no username set in API');
+        // Username is not set in backend either, keep as empty
+      } else {
+        console.log('HomeScreen - Failed to fetch username from API');
+      }
+    } catch (error) {
+      console.error('HomeScreen - Error fetching username from API:', error);
+    } finally {
+      setIsFetchingUsername(false);
+    }
+  };
+
+  // Check if token exists and is valid
+  const checkTokenValidity = useCallback(async (): Promise<boolean> => {
+    const { token, clearAuthData } = useAuthStore.getState();
+    console.log(token);
+    
+    
+    if (!token) {
+      console.log('No token found');
+      router.replace('/sign-in');
+      return false;
+    }
+  
+    // Use the utility function from api.ts
+    if (isTokenExpired(token)) {
+      console.log('Token is expired');
+      Alert.alert(
+        'Session Expired',
+        'Your session has expired. Please sign in again.',
+        [
+          { 
+            text: 'OK', 
+            onPress: () => {
+              clearAuthData();
+              router.replace('/sign-in');
+            }
+          }
+        ]
+      );
+      return false;
+    }
+  
+    return true;
+  }, [router]);
+  
+  const checkWalletFolders = useCallback(async () => {
+    try {
+      setIsCheckingWallets(true);
+      
+      // First check token validity using our enhanced function
+      const isTokenValid = await checkTokenValidity();
+      if (!isTokenValid) {
+        return;
+      }
+  
+      // Use the API functions - they now handle token expiration internally
+      const foldersResponse = await getWalletFolders();
+      
+      if (foldersResponse.success && foldersResponse.data) {
+        const { folders, totalWallets } = foldersResponse.data;
+        
+        console.log('Wallet folders check:', {
+          folderCount: folders.length,
+          totalWallets: totalWallets
+        });
+  
+        // If no folders exist, create a default one
+        if (folders.length === 0) {
+          console.log('No folders found, creating default folder...');
+          const createFolderResponse = await createFolder('K33P Wallets');
+          
+          if (createFolderResponse.success && createFolderResponse.data) {
+            console.log('Default folder created successfully:', createFolderResponse.data.id);
+            // Store the default folder ID
+            setDefaultFolderId(createFolderResponse.data.id);
+            // Stay on current screen since folder is empty
+            return;
+          } else {
+            console.log('Failed to create default folder');
+            Alert.alert('Error', 'Failed to create wallet folder. Please try again.');
+            return;
+          }
+        } else {
+          // Store the first folder ID as default
+          const firstFolder = folders[0];
+          setDefaultFolderId(firstFolder.id);
+          console.log('Default folder ID set:', firstFolder.id);
+        }
+  
+        // Check if any folder has wallets
+        const hasWallets = folders.some(folder => 
+          folder.items && folder.items.length > 0
+        );
+  
+        if (hasWallets) {
+          console.log('Wallets found, redirecting to add-to-wallet screen');
+          router.replace('/(home)/add-to-wallet');
+        } else {
+          console.log('No wallets found, staying on home screen');
+          // Stay on current screen - folders exist but are empty
+        }
+      } else {
+        console.log('Failed to fetch wallet folders:', foldersResponse.message);
+        // Handle API errors appropriately
+      }
+    } catch (error: any) {
+      console.log('Error checking wallet folders:', error);
+      
+      // Check if it's an authentication error
+      if (error.message?.includes('Authentication required')) {
+        // Token is invalid/expired, redirect to login
+        Alert.alert(
+          'Session Expired',
+          'Your session has expired. Please sign in again.',
+          [{ text: 'OK', onPress: () => router.replace('/sign-in') }]
+        );
+        return;
+      }
+      
+      // Handle other errors
+      Alert.alert('Error', 'Failed to check wallet folders. Please try again.');
+    } finally {
+      setIsCheckingWallets(false);
+    }
+  }, [checkTokenValidity, router]);
+
+  const openModal = useCallback(() => {
+    if (!defaultFolderId) {
+      Alert.alert('Error', 'Please wait while we set up your wallet folder...');
+      return;
+    }
+    setModalVisible(true);
+    setScanDeviceMessage(false); // Reset message when modal opens
+  }, [defaultFolderId]);
+
+  const closeModal = useCallback(() => {
+    setModalVisible(false);
+    setScanDeviceMessage(false); // Reset message when modal closes
+  }, []);
+
+  const handleScanDevice = useCallback(() => {
+    setScanDeviceMessage(true);
+  }, []);
+
+  const navigateToAddManually = useCallback(() => {
+    closeModal();
+    if (defaultFolderId) {
+      router.push({
+        pathname: '/add-manually',
+        params: { folderId: defaultFolderId }
+      });
+    } else {
+      Alert.alert('Error', 'Folder ID not available. Please try again.');
+    }
+  }, [defaultFolderId, router, closeModal]);
+
+  const openCarouselModal = useCallback((item: Slide) => {
+    setSelectedSlide(item);
+    setCarouselModalVisible(true);
+  }, []);
+
+  const closeCarouselModal = useCallback(() => {
+    setCarouselModalVisible(false);
+    setSelectedSlide(null);
+  }, []);
 
   useEffect(() => {
     const unsubscribePin = usePinStore.persist.onFinishHydration(() => {
@@ -95,12 +238,14 @@ export default function Index() {
     };
   }, []);
 
+  // Initialize data when store is hydrated
   useEffect(() => {
-    const checkUserSessionAndWallets = async () => {
+    const initializeApp = async () => {
       if (!isStoreHydrated) {
         return;
       }
 
+      // Check if user session is valid
       if (!phoneNumber) {
         Alert.alert(
           'Session Expired',
@@ -119,197 +264,89 @@ export default function Index() {
         return;
       }
 
-      const pinToUse = hasPin ? pin || '' : '';
-
-      if (phoneNumber && (pinToUse !== null || !hasPin)) {
-        try {
-          const storedWallets = await getStoredWallets(phoneNumber, pinToUse);
-          if (storedWallets.length > 0) {
-            router.replace('/(home)/add-to-wallet');
-          }
-        } catch (error) {
-          Alert.alert('Error', 'Failed to retrieve wallet data. Please try again.');
-          router.replace('/sign-in');
-        }
-      }
+      // Fetch username first if needed, then check wallet folders
+      await fetchUsernameFromAPI();
+      await checkWalletFolders();
     };
 
-    checkUserSessionAndWallets();
-  }, [isStoreHydrated, phoneNumber, pin, hasPin, router]);
+    initializeApp();
+  }, [isStoreHydrated, phoneNumber, pin, hasPin, router, checkWalletFolders]);
 
-  const onViewRef = useRef(({ viewableItems }) => {
-    if (viewableItems.length > 0) {
-      setCurrent(viewableItems[0].index);
+  // Refresh username when screen comes into focus
+  useEffect(() => {
+    if (isStoreHydrated) {
+      fetchUsernameFromAPI();
     }
-  });
+  }, [isStoreHydrated]);
 
-  const viewConfigRef = useRef({ viewAreaCoveragePercentThreshold: 50 });
+  // Display name logic
+  const displayName = username || 'User';
 
-  const prevSlide = useCallback(() => {
-    const prevIndex = current === 0 ? slides.length - 1 : current - 1;
-    flatListRef.current?.scrollToIndex({ index: prevIndex, animated: true });
-  }, [current]);
-
-  const nextSlide = useCallback(() => {
-    const nextIndex = current === slides.length - 1 ? 0 : current + 1;
-    flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
-  }, [current]);
-
-  const openModal = useCallback(() => setModalVisible(true), []);
-  const closeModal = useCallback(() => setModalVisible(false), []);
-
-  const openCarouselModal = useCallback((item) => {
-    setSelectedSlide(item);
-    setCarouselModalVisible(true);
-  }, []);
-
-  const closeCarouselModal = useCallback(() => {
-    setCarouselModalVisible(false);
-    setSelectedSlide(null);
-  }, []);
-
-  const renderItem = useCallback(({ item, index }) => (
-    <TouchableOpacity
-      activeOpacity={0.8}
-      onPress={() => openCarouselModal(item)}
-      style={{
-        width: ITEM_WIDTH,
-        marginRight: ITEM_SPACING,
-        backgroundColor: '#222222',
-        borderRadius: 12,
-        padding: 8,
-        flexDirection: 'row',
-        alignItems: 'center',
-        opacity: index === current ? 1 : 0.6,
-      }}
-    >
-      <Image
-        source={item.image}
-        style={{ width: 80, height: 80, marginRight: 20 }}
-        resizeMode="contain"
-      />
-      <View style={{ flex: 1 }}>
-        <Text
-          style={{
-            color: '#B0B0B0',
-            fontSize: 12,
-            marginBottom: 4,
-            fontFamily: 'Sora-Regular',
-          }}
-        >
-          {item.label}
+  // Show loading state while checking wallets
+  if (isCheckingWallets) {
+    return (
+      <View className="flex-1 justify-center items-center bg-mainBlack">
+        <Text className="text-white font-sora text-lg">Loading...</Text>
+        <Text className="text-neutral200 font-space-mono text-sm mt-2">
+          Checking your wallets...
         </Text>
-        <Text
-          style={{
-            color: 'white',
-            fontSize: 14,
-            fontFamily: 'Sora-Bold',
-          }}
-        >
-          {item.headline}
-        </Text>
+        {isFetchingUsername && (
+          <Text className="text-neutral200 text-sm mt-1 text-sora">Fetching user info...</Text>
+        )}
       </View>
-    </TouchableOpacity>
-  ), [current, openCarouselModal]);
+    );
+  }
 
   return (
     <View className="flex-1 justify-between pt-6 pb-12 relative">
+      {/* Header Icons */}
       <TouchableOpacity onPress={() => router.push('/support')} className="absolute left-4">
-      <INFO
-              style={{
-                left: '50%',
-                transform: [{ translateX: '-50%' }],
-              }}
-            />
+        <INFO
+          style={{
+            left: '50%',
+            transform: [{ translateX: '-50%' }],
+          }}
+        />
       </TouchableOpacity>
       
       <TouchableOpacity onPress={() => router.push('/profile')} className="absolute right-4">
-      <PROFILE
-              style={{
-                left: '50%',
-                transform: [{ translateX: '-50%' }],
-              }}
-            />      
-        </TouchableOpacity>
+        <PROFILE
+          style={{
+            left: '50%',
+            transform: [{ translateX: '-50%' }],
+          }}
+        />      
+      </TouchableOpacity>
 
+      {/* Main Content */}
       <View style={{ marginTop: 40 }}>
         <View className='px-6 mb-4'>
-          <Text className='text-white font-sora mb-2'>Hello {name || 'User'}!</Text>
+          <Text className='text-white font-sora mb-2'>Hello {displayName}!</Text>
           <Text className='text-[#B8B8B8] font-space-mono text-xs'>
             {getGreeting()}, and welcome to K33P.
           </Text>
         </View>
 
-        <FlatList
-          ref={flatListRef}
-          data={slides}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={renderItem}
-          snapToInterval={ITEM_WIDTH + ITEM_SPACING}
-          decelerationRate="fast"
-          snapToAlignment="start"
-          initialScrollIndex={0}
-          getItemLayout={(data, index) => ({
-            length: ITEM_WIDTH + ITEM_SPACING,
-            offset: (ITEM_WIDTH + ITEM_SPACING) * index,
-            index,
-          })}
-          contentContainerStyle={{ paddingLeft: 20, paddingRight: ITEM_SPACING }}
-          onViewableItemsChanged={onViewRef.current}
-          viewabilityConfig={viewConfigRef.current}
-          pagingEnabled={false}
-        />
-
-        <View className="flex-row items-center justify-between px-6 mt-6">
-          <TouchableOpacity
-            onPress={prevSlide}
-            activeOpacity={0.7}
-            disabled={current === 0}
-          >
-            <Ionicons
-              name="chevron-back-outline"
-              size={24}
-              color={current === 0 ? '#555' : '#fff'}
-            />
-          </TouchableOpacity>
-
-          <View className="flex-row gap-3 items-center">
-            {slides.map((_, index) => (
-              <Animated.View
-                key={index}
-                style={{
-                  width: index === current ? 16 : 8,
-                  height: 8,
-                  borderRadius: 8,
-                  backgroundColor: index === current ? '#FFD939' : '#666',
-                  transition: 'width 0.25s ease-in-out',
-                }}
-              />
-            ))}
-          </View>
-
-          <TouchableOpacity
-            onPress={nextSlide}
-            activeOpacity={0.7}
-            disabled={current === slides.length - 1}
-          >
-            <Ionicons
-              name="chevron-forward-outline"
-              size={24}
-              color={current === slides.length - 1 ? '#555' : '#fff'}
-            />
-          </TouchableOpacity>
-        </View>
-
+        {/* Carousel Component */}
+        <Carousel onSlidePress={openCarouselModal} />
       </View>
 
+      {/* Connect Section */}
       <View className="bg-[#222222] px-4 py-8 rounded-3xl space-y-4 mt-10 mx-3">
         <View className="items-center mb-4">
           <Text className="text-neutral200 font-sora-semibold text-sm">Connect</Text>
         </View>
-        <Button text="Add New Wallet" onPress={openModal} />
+        <Button 
+          text="Add New Wallet" 
+          onPress={openModal}
+          loading={isCheckingWallets || !defaultFolderId}
+          disabled={isCheckingWallets || !defaultFolderId}
+        />
+        {!defaultFolderId && (
+          <Text className="text-neutral200 text-xs text-center mt-2">
+            Setting up your wallet folder...
+          </Text>
+        )}
       </View>
 
       {/* Add Wallet Modal */}
@@ -328,19 +365,25 @@ export default function Index() {
             <View className="space-y-4 gap-4">
               <Button
                 text="Scan Device"
-                onPress={() => {
-                  closeModal();
-                  router.push('/search');
-                }}
+                onPress={handleScanDevice}
               />
+              
+              {/* Show message when Scan Device is clicked */}
+             
+              
               <Button
                 text="Add Manually"
-                onPress={() => {
-                  closeModal();
-                  router.push('/add-manually');
-                }}
+                onPress={navigateToAddManually}
                 outline
               />
+
+            {scanDeviceMessage && (
+                <View className="px-4 py-2">
+                  <Text className="text-neutral200 font-sora text-xs text-center">
+                    This feature is currently unavailable. Please add manually.
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
         </View>
@@ -373,7 +416,7 @@ export default function Index() {
                   {selectedSlide.description}
                 </Text>
               </View>
-              <View className="absolute bottom-12 left-0 right-0 px-4">
+              <View className="absolute bottom-16 left-0 right-0 px-4">
                 <Button 
                   text="Close" 
                   onPress={closeCarouselModal}

@@ -1,12 +1,20 @@
 import { BackIcon } from '@/assets/images/svg';
 import Button from '@/components/Button';
+import { useAuthStore } from '@/store/useAuthMethod';
 import { usePhoneStore } from '@/store/usePhoneStore';
 import { usePinStore } from '@/store/usePinStore';
+import {
+  completeRefund,
+  createAuthMethods,
+  generateZKCommitment,
+  generateZKProof,
+  initiateRefund,
+  signupUser
+} from '@/utils/api';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Clipboard, Image, Modal, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
-import InputEndIcon from '../../../../assets/images//paste.png';
 import CopyIcon from '../../../../assets/images/Copy.png';
 import DidCreationFailed from '../../../../assets/images/did-failed.png';
 import ProgressFailed from '../../../../assets/images/did-progress-failed.png';
@@ -14,14 +22,12 @@ import DidCreationImage1 from '../../../../assets/images/did_creation.png';
 import DidCreationImage2 from '../../../../assets/images/did_creation2.png';
 import DidCreationImage3 from '../../../../assets/images/did_creation3.png';
 import DidCreationImage4 from '../../../../assets/images/did_creation4.png';
+import InputEndIcon from '../../../../assets/images/paste.png';
 import Progress100 from '../../../../assets/images/progress100.png';
 import Progress30 from '../../../../assets/images/progress30.png';
 import Progress70 from '../../../../assets/images/progress70.png';
 import QRCodeImage from '../../../../assets/images/QR Code-.png';
 import SuccessImage from '../../../../assets/images/success.png';
-
-//const BASE_URL = 'https://k33p-backend-i9kj.onrender.com/api';
-const BASE_URL = 'http://localhost:3000/api';
 
 const generateUserId = () => {
   const timestamp = Date.now().toString(36);
@@ -59,6 +65,7 @@ export default function DidScreen() {
 
   const { phoneNumber } = usePhoneStore();
   const { pin } = usePinStore();
+  const { setUserId, setWalletAddress, setUserAuthMethods, setToken } = useAuthStore();
 
   const walletAddress = "addr_test1wznyv36t3a2rzfs4q6mvyu7nqlr4dxjwkmykkskafg54yzs735734";
 
@@ -94,7 +101,7 @@ export default function DidScreen() {
     setCurrentStep('account');
     setIsLoading(true);
     setRetryData(prev => ({ ...prev, userId })); 
-
+  
     try {
       if (!zkProofRef.current || !zkCommitmentRef.current) {
         setError("Missing ZK proof or commitment");
@@ -102,96 +109,95 @@ export default function DidScreen() {
         setCurrentProgressImage(ProgressFailed);
         setProgressText('Failed to create account. Missing required data.');
         console.log("Missing ZK proof or commitment");
-        
         return;
       }
       
       setCurrentDidImage(DidCreationImage2);
       setCurrentProgressImage(Progress30);
-
-      const userSignupPayload = {
-        userId,
+  
+      console.log("--- Step 1: Requesting Initial Refund ---");
+      
+      // Use API utility function
+      const initialRefundData = await initiateRefund(sendingAddress);
+      console.log("Initial Refund response:", initialRefundData); 
+  
+      console.log("--- Step 2: Creating Account ---");
+      
+      // Generate encrypted hashes and auth methods using utility function
+      const authMethods = createAuthMethods(phoneNumber, pin, userId);
+  
+      // Prepare signup payload
+      const signupPayload = {
+        userId: userId,
         userAddress: sendingAddress,
-        phoneNumber: phoneNumber,
-        commitment: zkCommitmentRef.current
+        phoneHash: authMethods.find(m => m.type === 'phone')?.data || '',
+        pinHash: authMethods.find(m => m.type === 'pin')?.data || '',
+        authMethods: authMethods,
+        zkCommitment: zkCommitmentRef.current,
+        zkProof: zkProofRef.current,
+        verificationMethod: 'phone'
       };
-
-      const userSignupResponse = await fetch(`${BASE_URL}/auth/signup`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(userSignupPayload)
+  
+      console.log("Signup Payload:", {
+        ...signupPayload,
+        authMethods: authMethods.map(m => ({ type: m.type, hasData: !!m.data }))
       });
-
-      const userSignupData = await userSignupResponse.json();
-
-      console.log(userSignupData);
-
-      if (!userSignupResponse.ok) {
-        if (userSignupData.error?.code === "CONFLICT" ||
-            userSignupData.error?.message?.includes("User already exists") ||
-            userSignupData.message?.includes("User already exists")) {
-          console.log("User already exists. Proceeding with login...");
-        } else {
-          setError(`Failed to register user: ${userSignupData.error?.message || userSignupData.message}`);
-          setCurrentDidImage(DidCreationFailed);
-          setCurrentProgressImage(ProgressFailed);
-          setProgressText('Account creation failed. Please try again.');
-          return;
-        }
+  
+      // Use API utility function for signup
+      const signupData = await signupUser(signupPayload);
+      console.log("Signup Response:", signupData);
+  
+      // Save token and user data to store after successful signup
+      if (signupData.data?.token) {
+        setToken(signupData.data.token);
+        console.log('Token saved to store after signup');
       }
-    
-     /*  const zkLoginPayload = {
-        phone: phoneNumber,
-        proof: {
-          proof: zkProofRef.current,
-          publicInputs: {
-            commitment: zkCommitmentRef.current
-          },
-          isValid: true
-        },
-        commitment: zkCommitmentRef.current
-      };
-
-      console.log("ZK Login Payload:", zkLoginPayload);
       
-      const zkLoginResponse = await fetch(`${BASE_URL}/zk/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(zkLoginPayload)
-      });
-
-      const zkLoginData = await zkLoginResponse.json();
+      if (signupData.data?.userId) {
+        setUserId(signupData.data.userId);
+      }
       
-      console.log("zkLoginData:", zkLoginData);
+      if (signupData.data?.userAddress) {
+        setWalletAddress(signupData.data.userAddress);
+      }
       
-      if (!zkLoginResponse.ok || !zkLoginData.success) {
-        if (zkLoginData.error?.message?.includes("already exists") || 
-            zkLoginData.message?.includes("already exists")) {
-          console.log("Account exists but login failed. Generating new credentials...");
-          zkProofRef.current = null;
-          zkCommitmentRef.current = null;
-          await handleGenerateZKProof();
-          return;
-        }
-        
-        setError(`Failed to log in with ZK proof: ${zkLoginData.error?.message || zkLoginData.message}`);
-        setCurrentDidImage(DidCreationFailed);
-        setCurrentProgressImage(ProgressFailed);
-        setProgressText('Login failed. Please try again.');
-        return;
-      }  */
-
+      if (signupData.data?.authMethods) {
+        setUserAuthMethods(signupData.data.authMethods);
+      }
+  
+      // STEP 3: Complete the refund flow after successful account creation
+      console.log("--- Step 3: Completing Refund Flow ---");
       setCurrentDidImage(DidCreationImage3); 
       setProgressText('DID created. Initiating collateral refund...');
       setCurrentProgressImage(Progress70);
-
-      await triggerImmediateRefund();
-
-    } catch (error) {
-      setError(`An unexpected error occurred during account creation/login: ${error}`);
+      
+      setCurrentDidImage(DidCreationImage4);
+      setProgressText('Refund of 2 ADA Collateral to the connected wallet is complete.');
+      setCurrentProgressImage(Progress100);
+      
+      setTimeout(() => {
+        router.push('/(auth)/sign-up/name');
+      }, 2000); 
+  
+    } catch (error: unknown) {
+      console.error("Account creation error:", error);
+      
+      let errorMessage = 'An unexpected error occurred during account creation. Please try again.';
+      
+      if (error instanceof Error) {
+        if (error.message?.includes('Network request failed')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else {
+          errorMessage = error.message;
+        }
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      setError(errorMessage);
       setCurrentDidImage(DidCreationFailed);
       setCurrentProgressImage(ProgressFailed);
-      setProgressText('Account creation failed. Please try again.');
+      setProgressText(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -203,30 +209,10 @@ export default function DidScreen() {
     setIsLoading(true);
   
     try {
-      const refundPayload = {
-        userAddress: sendingAddress,
-        walletAddress: sendingAddress
-      };
-  
-      const refundResponse = await fetch(`${BASE_URL}/refund`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(refundPayload)
-      });
-      
-      // Only call .json() once!
-      const refundData = await refundResponse.json();
+      const refundData = await completeRefund(sendingAddress, sendingAddress);
       console.log("Refund response:", refundData);
   
-      if (!refundResponse.ok || !refundData.success) {
-        setError(`Failed to initiate immediate refund: ${refundData.message}`);
-        setCurrentDidImage(DidCreationFailed);
-        setCurrentProgressImage(ProgressFailed);
-        setProgressText(refundData.message || 'Refund failed. Please try again.');
-        return;
-      }
-  
-      setRefundStatus(prev => ({ ...prev, txHash: refundData.data?.txHash }));
+      setRefundStatus(prev => ({ ...prev, txHash: refundData?.txHash }));
       setCurrentDidImage(DidCreationImage4);
       setProgressText('Refund of 2 ADA Collateral to the connected wallet is complete.');
       setCurrentProgressImage(Progress100);
@@ -235,7 +221,7 @@ export default function DidScreen() {
         router.push('/(auth)/sign-up/name');
       }, 2000);
   
-    } catch (error) {
+    } catch (error: any) {
       setError(`Refund error: ${error.message}`);
       setCurrentDidImage(DidCreationFailed);
       setCurrentProgressImage(ProgressFailed);
@@ -249,75 +235,21 @@ export default function DidScreen() {
     setCurrentStep('commitment');
     setIsLoading(true);
 
-      try {
-        const userId = generateUserId();
-        const biometricData = "static_biometric_data_base64_encoded";
-        const passkey = pin;
+    try {
+      const userId = generateUserId();
+      const biometricData = "static_biometric_data_base64_encoded";
+      const passkey = pin;
       
-        const commitmentPayload = {
-          phone: phoneNumber,
-          biometric: biometricData,
-          passkey: passkey
-        };
-        console.log("commitmentPayload:", commitmentPayload);
-        
-        const commitmentResponse = await fetch(`${BASE_URL}/zk/commitment`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(commitmentPayload)
-        });
-        
-        const commitmentJson = await commitmentResponse.json();
-        const commitmentData = commitmentJson.data || commitmentJson;
-        console.log(commitmentData);
-        
-        if (!commitmentResponse.ok || !commitmentData.commitment) {
-          setError(`Failed to generate ZK commitment: ${commitmentData.error?.message || commitmentData.message}`);
-          setCurrentDidImage(DidCreationFailed);
-          setCurrentProgressImage(ProgressFailed);
-          setProgressText('ZK Proof generation failed. Please try again.');
-          return;
-        } 
-      
-        // Remove everything after and including the last hyphen
-        const cleanCommitment = commitmentData.commitment.replace(/-[^-]*$/, '');
-        zkCommitmentRef.current = cleanCommitment;
-        console.log("Cleaned zkCommitmentRef.current:", zkCommitmentRef.current);
+      // Use API utility functions
+      console.log("Generating ZK commitment...");
+      const commitment = await generateZKCommitment(phoneNumber, biometricData, passkey);
+      zkCommitmentRef.current = commitment;
+      console.log("ZK Commitment:", zkCommitmentRef.current);
 
-      const proofPayload = {
-        phone: phoneNumber,
-        biometric: biometricData,
-        passkey: passkey,
-        commitment: zkCommitmentRef.current
-      };
-
-      console.log("proofPayload:", proofPayload);
-
-      const proofResponse = await fetch(`${BASE_URL}/zk/proof`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(proofPayload)
-      });
-      
-      const proofJson = await proofResponse.json();
-      const proofData = proofJson.data || proofJson;
-      
-      if (!proofResponse.ok || !proofData.proof) {
-        setError(`Failed to generate ZK proof: ${proofData.error?.message || proofData.message}`);
-        setCurrentDidImage(DidCreationFailed);
-        setCurrentProgressImage(ProgressFailed);
-        setProgressText('ZK Proof generation failed. Please try again.');
-        return;
-      }
-      
-       const rawProof = proofData.proof;
-/*       if (rawProof.startsWith('zk-proof-')) {
-        rawProof = rawProof.substring(8);
-      }
-      rawProof = rawProof.replace(/^-+/, '');
- */      
-      zkProofRef.current = rawProof;
-      console.log("zkProofRef.current:", zkProofRef.current);
+      console.log("Generating ZK proof...");
+      const proof = await generateZKProof(phoneNumber, biometricData, passkey, zkCommitmentRef.current);
+      zkProofRef.current = proof;
+      console.log("ZK Proof:", zkProofRef.current);
       
       setRetryData({
         userId,
@@ -335,7 +267,7 @@ export default function DidScreen() {
         createAccountAndLogin(userId);
       }, 1000);
 
-    } catch (error) {
+    } catch (error: any) {
       setError(`An unexpected error occurred during initial setup: ${error.message}`);
       setCurrentDidImage(DidCreationFailed);
       setCurrentProgressImage(ProgressFailed);
