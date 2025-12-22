@@ -249,7 +249,7 @@ export default function AddManually() {
           {/* Header Area (Back button and Animated Search Input) */}
           <View className="">
             <View className="flex-row items-center justify-start mb-4">
-              <TouchableOpacity onPress={() => router.back()}>
+              <TouchableOpacity onPress={() => router.back()} >
                 <BackIcon width={40} height={40} />
               </TouchableOpacity>
             </View>
@@ -302,7 +302,7 @@ export default function AddManually() {
             {isSearching ? (
               <>
                 <ScrollView
-                  className="flex-1"
+                  className="flex-1 mb-3"
                   keyboardShouldPersistTaps="handled"
                 >
                   {searchQuery !== '' ? (
@@ -310,7 +310,7 @@ export default function AddManually() {
                     filteredWallets.map(wallet => (
                       <TouchableOpacity
                         key={wallet.id}
-                        className="flex-row justify-between items-center py-3"
+                        className="flex-row justify-between items-center py-3 "
                         onPress={() => handleWalletSelect(wallet)}
                       >
                         <Text className="text-white font-sora text-base">{wallet.name}</Text>
@@ -358,7 +358,7 @@ export default function AddManually() {
                         onPress={toggleSearch}
                         className="bg-mainBlack p-3 rounded-full ml-4"
                       >
-                        <Octicons name="search" size={18} color="#FFD700" />
+                        <Octicons name="search" size={18} color="#FFD700" className="-mt-2"/>
                       </TouchableOpacity>
                     </Animated.View>
                   </View>

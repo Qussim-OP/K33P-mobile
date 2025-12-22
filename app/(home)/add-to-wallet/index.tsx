@@ -685,7 +685,7 @@ export default function Index() {
 </Modal>
 
       {/* Connect Section */}
-      <View className="bg-[#222222] px-4 pt-8 pb-8 mb-16 rounded-3xl mt-10">
+      <View className="bg-[#222222] px-4 pt-8 pb-8 mb-16 rounded-3xl mt-">
         <View className="items-center mb-4">
           <Text className="text-neutral200 font-sora-semibold text-sm">Connect</Text>
         </View>

@@ -16,7 +16,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View
 } from 'react-native';
 import SearchIcon from '../../../assets/images/search.png';
@@ -199,7 +198,7 @@ export default function AccountHelpScreen() {
 
   const renderSearchResultItem = useCallback(({ item, index }: { item: SearchResult; index: number }) => {
     // Calculate dynamic height based on content
-    const itemHeight = screenHeight * 0.66; // Fixed height for consistency
+    const itemHeight = screenHeight * 0.6; // Fixed height for consistency
     
     return (
       <View
@@ -234,9 +233,8 @@ export default function AccountHelpScreen() {
               paddingTop: 8,
             }}
             nestedScrollEnabled={true} // Important for nested scrolling
-            scrollEventThrottle={16}
             bounces={true}
-            overScrollMode="always"
+            overScrollMode="never"
           >
             {item.highlightedContent}
           </ScrollView>
@@ -254,12 +252,8 @@ export default function AccountHelpScreen() {
   }
 
   return (
-    <TouchableWithoutFeedback onPress={() => {
-      if (isKeyboardVisible) {
-        Keyboard.dismiss();
-      }
-    }}>
-      <View className="flex-1">
+    <Pressable style={{ flex: 1 }} onPress={Keyboard.dismiss}>
+
         <View className="mb-4 pb-4">
           <TouchableOpacity onPress={() => router.back()} className="absolute left-4 z-10">
             <BackIcon
@@ -310,6 +304,7 @@ export default function AccountHelpScreen() {
                 ref={searchFlatListRef}
                 data={searchResults}
                 horizontal
+                directionalLockEnabled
                 showsHorizontalScrollIndicator={false}
                 keyExtractor={(item) => `${item.section}-${item.id}`}
                 renderItem={renderSearchResultItem}
@@ -447,7 +442,6 @@ export default function AccountHelpScreen() {
             </View>
           </View>
         </Modal>
-      </View>
-    </TouchableWithoutFeedback>
+    </Pressable>
   );
 }

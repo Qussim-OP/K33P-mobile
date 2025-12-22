@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   Modal,
+  ScrollView,
   Text,
   TouchableOpacity,
   TouchableWithoutFeedback,
@@ -263,11 +264,15 @@ export default function Keeplock() {
         <Text className="text-white font-sora-bold text-sm">Manage KeepLock</Text>
         <View className="w-10" />
       </View>
-
-      <Text className='text-neutral200 font-sora-semibold text-sm px-6 mb-8'>
+     
+      <Text className='text-neutral200 font-sora-semibold text-sm px-6 mb-5'>
         Register new or set default security layer when signing in
       </Text>
-
+      <ScrollView
+  className="flex-1"
+  contentContainerStyle={{ paddingTop: 10, paddingBottom:20 }}
+  showsVerticalScrollIndicator={false}
+>
       <View className="px-4">
         <View className="flex-row flex-wrap -mx-2">
           {keeplockOptions.map((option, index) => {
@@ -307,6 +312,7 @@ export default function Keeplock() {
         </View>
       </View>
 
+      </ScrollView>
 
       <Modal
         visible={modalVisible}

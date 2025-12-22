@@ -29,7 +29,7 @@ import {
 } from '@/assets/images/svg';
 import Button from '@/components/Button';
 import { useAuthStore } from '@/store/useAuthMethod';
-import { checkUsernameAvailability, getUsername, updateUsername } from '@/utils/api'; // Import checkUsernameAvailability
+import { checkUsernameAvailability, getUsername, updateUsername } from '@/utils/api';
 import {
   getCurrentImageNumber,
   updateImageNumber,
@@ -43,19 +43,19 @@ export default function EditProfile() {
   const [isImageChanged, setIsImageChanged] = useState(false);
   const [isUsernameChanged, setIsUsernameChanged] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [initialUsername, setInitialUsername] = useState('');
   const [apiUsername, setApiUsername] = useState('');
   const [localUsername, setLocalUsername] = useState('');
-  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null); // null = not checked, true = available, false = taken
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
   const [checkingAvailability, setCheckingAvailability] = useState(false);
   const [usernameValidationError, setUsernameValidationError] = useState<string | null>(null);
   
   const { username, setUsername, token } = useAuthStore();
-  const keyboardOffset = useRef(new Animated.Value(0)).current;
+  const buttonPosition = useRef(new Animated.Value(44)).current; // Start at 16px from bottom
   const textInputRef = useRef<TextInput>(null);
-  const buttonPosition = useRef(new Animated.Value(0)).current;
   const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Avatar images mapping
@@ -232,52 +232,29 @@ export default function EditProfile() {
   };
 
   const handleKeyboardShow = (event: any) => {
+    const keyboardHeight = event.endCoordinates.height;
     setKeyboardVisible(true);
-    if (Platform.OS === 'ios') {
-      Animated.parallel([
-        Animated.timing(keyboardOffset, {
-          duration: event.duration,
-          toValue: event.endCoordinates.height,
-          useNativeDriver: false,
-        }),
-        Animated.timing(buttonPosition, {
-          duration: event.duration,
-          toValue: -event.endCoordinates.height + 80,
-          useNativeDriver: true,
-        })
-      ]).start();
-    } else {
-      Animated.timing(buttonPosition, {
-        duration: 250,
-        toValue: -300,
-        useNativeDriver: true,
-      }).start();
-    }
+    setKeyboardHeight(keyboardHeight);
+    
+    // Move button up to be 16px above keyboard
+    // Button at bottom:16, need to move up by (keyboardHeight - 16)
+    Animated.timing(buttonPosition, {
+      duration: event.duration || 250,
+      toValue: -(keyboardHeight - 80),
+      useNativeDriver: true,
+    }).start();
   };
-
+  
   const handleKeyboardHide = (event: any) => {
     setKeyboardVisible(false);
-    if (Platform.OS === 'ios') {
-      Animated.parallel([
-        Animated.timing(keyboardOffset, {
-          duration: event.duration,
-          toValue: 0,
-          useNativeDriver: false,
-        }),
-        Animated.timing(buttonPosition, {
-          duration: event.duration,
-          toValue: 0,
-          useNativeDriver: true,
-        })
-      ]).start();
-    } else {
-      Animated.timing(buttonPosition, {
-        duration: 250,
-        toValue: 0,
-        useNativeDriver: true,
-      }).start();
-    }
+    
+    Animated.timing(buttonPosition, {
+      duration: event.duration || 250,
+      toValue: 44,
+      useNativeDriver: true,
+    }).start();
   };
+
 
   const dismissKeyboard = () => {
     Keyboard.dismiss();
@@ -416,13 +393,13 @@ export default function EditProfile() {
         <ScrollView
           contentContainerStyle={{ 
             flexGrow: 1,
-            paddingBottom: keyboardVisible ? 100 : 0
+            paddingBottom: keyboardVisible ? keyboardHeight + 60 : 100 // Add extra padding when keyboard is visible
           }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           keyboardDismissMode="on-drag"
         >
-          <View className="flex-1 px-4 " >
+          <View className="flex-1 px-4">
             {/* Header */}
             <View className="flex-row items-center justify-between mb-10">
               <TouchableOpacity onPress={() => {
@@ -518,8 +495,6 @@ export default function EditProfile() {
                   Add a username to personalize your profile
                 </Text>
               )}
-              
-             
             </View>
 
             {/* Spacer to push button up when keyboard is visible */}
@@ -534,7 +509,7 @@ export default function EditProfile() {
               position: 'absolute',
               left: 16,
               right: 16,
-              bottom: Platform.OS === 'ios' ? 20 : 58,
+              bottom: 100, // Start at bottom
               transform: [{ translateY: buttonPosition }],
             }
           ]}
