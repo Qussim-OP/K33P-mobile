@@ -4,29 +4,23 @@ import { useAuthStore } from '@/store/useAuthMethod';
 import { usePhoneStore } from '@/store/usePhoneStore';
 import { usePinStore } from '@/store/usePinStore';
 import {
-  completeRefund,
   createAuthMethods,
-  generateZKCommitment,
-  generateZKProof,
-  initiateRefund,
+  createDID,
   signupUser
 } from '@/utils/api';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Clipboard, Image, Modal, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
-import CopyIcon from '../../../../assets/images/Copy.png';
+import { Alert, Image, Modal, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import DidCreationFailed from '../../../../assets/images/did-failed.png';
 import ProgressFailed from '../../../../assets/images/did-progress-failed.png';
 import DidCreationImage1 from '../../../../assets/images/did_creation.png';
 import DidCreationImage2 from '../../../../assets/images/did_creation2.png';
 import DidCreationImage3 from '../../../../assets/images/did_creation3.png';
 import DidCreationImage4 from '../../../../assets/images/did_creation4.png';
-import InputEndIcon from '../../../../assets/images/paste.png';
 import Progress100 from '../../../../assets/images/progress100.png';
 import Progress30 from '../../../../assets/images/progress30.png';
 import Progress70 from '../../../../assets/images/progress70.png';
-import QRCodeImage from '../../../../assets/images/QR Code-.png';
 import SuccessImage from '../../../../assets/images/success.png';
 
 const generateUserId = () => {
@@ -37,37 +31,23 @@ const generateUserId = () => {
 
 export default function DidScreen() {
   const router = useRouter();
-  const [showSendAdaModal, setShowSendAdaModal] = useState(false);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
-  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [currentDidImage, setCurrentDidImage] = useState(DidCreationImage1);
   const [currentProgressImage, setCurrentProgressImage] = useState(Progress30);
   const [progressText, setProgressText] = useState('DID creation in progress...');
   const [showProgress, setShowProgress] = useState(false);
-  const [sendingAddress, setSendingAddress] = useState('');
-  const [txHash, setTxHash] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [refundStatus, setRefundStatus] = useState({
-    refunded: false,
-    txHash: '',
-  });
-  const [currentStep, setCurrentStep] = useState<'commitment' | 'account' | 'refund' | null>(null);
+  const [currentStep, setCurrentStep] = useState<'did_creation' | 'account' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [retryData, setRetryData] = useState<{
     userId?: string;
-    commitment?: string;
-    proof?: any;
+    did?: string;
   }>({});
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const zkProofRef = useRef<any>(null);
-  const zkCommitmentRef = useRef<string | null>(null);
+  const didRef = useRef<string | null>(null);
 
   const { phoneNumber } = usePhoneStore();
   const { pin } = usePinStore();
   const { setUserId, setWalletAddress, setUserAuthMethods, setToken } = useAuthStore();
-
-  const walletAddress = "addr_test1wznyv36t3a2rzfs4q6mvyu7nqlr4dxjwkmykkskafg54yzs735734";
 
   const showAlert = (title, message) => {
     Alert.alert(title, message);
@@ -86,13 +66,11 @@ export default function DidScreen() {
     
     resetFlow();
     
-    if (currentStep === 'commitment') {
-      await handleGenerateZKProof();
+    if (currentStep === 'did_creation') {
+      await handleCreateDID();
     } else if (currentStep === 'account') {
       const userId = retryData.userId || generateUserId();
       await createAccountAndLogin(userId);
-    } else if (currentStep === 'refund') {
-      await triggerImmediateRefund();
     }
   };
 
@@ -103,38 +81,30 @@ export default function DidScreen() {
     setRetryData(prev => ({ ...prev, userId })); 
   
     try {
-      if (!zkProofRef.current || !zkCommitmentRef.current) {
-        setError("Missing ZK proof or commitment");
+      if (!didRef.current) {
+        setError("Missing DID");
         setCurrentDidImage(DidCreationFailed);
         setCurrentProgressImage(ProgressFailed);
-        setProgressText('Failed to create account. Missing required data.');
-        console.log("Missing ZK proof or commitment");
+        setProgressText('Failed to create account. Missing DID.');
+        console.log("Missing DID");
         return;
       }
       
       setCurrentDidImage(DidCreationImage2);
       setCurrentProgressImage(Progress30);
   
-      console.log("--- Step 1: Requesting Initial Refund ---");
-      
-      // Use API utility function
-      const initialRefundData = await initiateRefund(sendingAddress);
-      console.log("Initial Refund response:", initialRefundData); 
-  
-      console.log("--- Step 2: Creating Account ---");
+      console.log("--- Step 1: Creating Account ---");
       
       // Generate encrypted hashes and auth methods using utility function
       const authMethods = createAuthMethods(phoneNumber, pin, userId);
   
-      // Prepare signup payload
+      // Prepare signup payload with Midnight DID
       const signupPayload = {
         userId: userId,
-        userAddress: sendingAddress,
+        did: didRef.current,
         phoneHash: authMethods.find(m => m.type === 'phone')?.data || '',
         pinHash: authMethods.find(m => m.type === 'pin')?.data || '',
         authMethods: authMethods,
-        zkCommitment: zkCommitmentRef.current,
-        zkProof: zkProofRef.current,
         verificationMethod: 'phone'
       };
   
@@ -157,22 +127,22 @@ export default function DidScreen() {
         setUserId(signupData.data.userId);
       }
       
-      if (signupData.data?.userAddress) {
-        setWalletAddress(signupData.data.userAddress);
+      if (signupData.data?.did) {
+        setWalletAddress(signupData.data.did);
       }
       
       if (signupData.data?.authMethods) {
         setUserAuthMethods(signupData.data.authMethods);
       }
   
-      // STEP 3: Complete the refund flow after successful account creation
-      console.log("--- Step 3: Completing Refund Flow ---");
+      // STEP 3: Complete DID creation flow
+      console.log("--- Step 3: DID Creation Complete ---");
       setCurrentDidImage(DidCreationImage3); 
-      setProgressText('DID created. Initiating collateral refund...');
+      setProgressText('DID created successfully. Setting up your vault...');
       setCurrentProgressImage(Progress70);
       
       setCurrentDidImage(DidCreationImage4);
-      setProgressText('Refund of 2 ADA Collateral to the connected wallet is complete.');
+      setProgressText('DID and vault setup complete. Welcome to K33P!');
       setCurrentProgressImage(Progress100);
       
       setTimeout(() => {
@@ -203,107 +173,61 @@ export default function DidScreen() {
     }
   };
 
-  const triggerImmediateRefund = async () => {
-    console.log("--- Requesting Immediate Refund ---");
-    setCurrentStep('refund');
-    setIsLoading(true);
-  
-    try {
-      const refundData = await completeRefund(sendingAddress, sendingAddress);
-      console.log("Refund response:", refundData);
-  
-      setRefundStatus(prev => ({ ...prev, txHash: refundData?.txHash }));
-      setCurrentDidImage(DidCreationImage4);
-      setProgressText('Refund of 2 ADA Collateral to the connected wallet is complete.');
-      setCurrentProgressImage(Progress100);
-      
-      setTimeout(() => {
-        router.push('/(auth)/sign-up/name');
-      }, 2000);
-  
-    } catch (error: any) {
-      setError(`Refund error: ${error.message}`);
-      setCurrentDidImage(DidCreationFailed);
-      setCurrentProgressImage(ProgressFailed);
-      setProgressText('Refund failed. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleGenerateZKProof = async () => {
-    setCurrentStep('commitment');
+  const handleCreateDID = async () => {
+    setCurrentStep('did_creation');
     setIsLoading(true);
 
     try {
       const userId = generateUserId();
-      const biometricData = "static_biometric_data_base64_encoded";
-      const passkey = pin;
       
-      // Use API utility functions
-      console.log("Generating ZK commitment...");
-      const commitment = await generateZKCommitment(phoneNumber, biometricData, passkey);
-      zkCommitmentRef.current = commitment;
-      console.log("ZK Commitment:", zkCommitmentRef.current);
-
-      console.log("Generating ZK proof...");
-      const proof = await generateZKProof(phoneNumber, biometricData, passkey, zkCommitmentRef.current);
-      zkProofRef.current = proof;
-      console.log("ZK Proof:", zkProofRef.current);
-      
-      setRetryData({
+      // Use Midnight Passport SDK to create DID
+      console.log("Creating Midnight DID...");
+      const didResult = await createDID({
         userId,
-        commitment: zkCommitmentRef.current,
-        proof: zkProofRef.current
+        phoneNumber,
+        pin
       });
+      
+      if (didResult.success && didResult.did) {
+        didRef.current = didResult.did;
+        console.log("DID created:", didRef.current);
+        
+        setRetryData({
+          userId,
+          did: didRef.current
+        });
 
-      setShowConfirmationModal(false);
-      setShowProgress(true);
-      setCurrentDidImage(DidCreationImage1);
-      setCurrentProgressImage(Progress30);
-      setProgressText('DID creation in progress. Awaiting deposit verification and vault setup. Refund of collateral will proceed after DID is created.');
+        setShowConfirmationModal(false);
+        setShowProgress(true);
+        setCurrentDidImage(DidCreationImage1);
+        setCurrentProgressImage(Progress30);
+        setProgressText('DID creation in progress. Setting up your identity vault...');
 
-      setTimeout(() => {
-        createAccountAndLogin(userId);
-      }, 1000);
+        setTimeout(() => {
+          createAccountAndLogin(userId);
+        }, 1000);
+      } else {
+        throw new Error(didResult.error || 'Failed to create DID');
+      }
 
     } catch (error: any) {
-      setError(`An unexpected error occurred during initial setup: ${error.message}`);
+      setError(`An unexpected error occurred during DID creation: ${error.message}`);
       setCurrentDidImage(DidCreationFailed);
       setCurrentProgressImage(ProgressFailed);
-      setProgressText('Initial setup failed. Please try again.');
+      setProgressText('DID creation failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
-
-  const handleSendAda = () => {
-    setShowSendAdaModal(false);
-    setShowConfirmationModal(true);
-  };
   
   useEffect(() => {
     if (showConfirmationModal) {
-      handleGenerateZKProof();
+      handleCreateDID();
     }
   }, [showConfirmationModal]);
 
-  useEffect(() => {
-    return () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-      }
-    };
-  }, []);
-
   const handleProceed = () => {
-    setShowSendAdaModal(true);
-  };
-
-  const handleCopyAddress = () => {
-    Clipboard.setString(walletAddress);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setShowConfirmationModal(true);
   };
 
   return (
@@ -336,10 +260,10 @@ export default function DidScreen() {
         </View>
 
         <Text className="text-white font-sora-bold text-sm mb-2">
-          Vault Creation 
+          DID Creation 
         </Text>
         <Text className="text-neutral100 font-sora text-sm mb-6 mr-10">
-          A collateral of 2 ADA is required to verify account on-chain & vault SetUp
+          Creating your decentralized identity using Midnight Passport
         </Text>
 
         <View className="items-center mb-4">
@@ -381,135 +305,20 @@ export default function DidScreen() {
         <View className='mb-16'>
           <Text className="text-main font-sora text-xs text-center mb-4">
             Note: 
-            <Text className="text-neutral100"> Collateral will be fully refunded upon completion of vault setup</Text>
+            <Text className="text-neutral100"> Your DID will be created securely using Midnight Passport</Text>
           </Text>
           <Button
-            text='Deposit 2ADA'
+            text='Create DID'
             onPress={handleProceed}
           />
         </View>
       )}
-
-      {/* Send ADA Modal */}
-      <Modal
-        visible={showSendAdaModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowSendAdaModal(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setShowSendAdaModal(false)}>
-          <View className="flex-1 bg-neutral800/90 justify-end">
-            <TouchableWithoutFeedback>
-              <View className="bg-mainBlack rounded-t-3xl px-6 pb-16">
-                <TouchableOpacity className="items-center pt-3 pb-12" onPress={() => setShowSendAdaModal(false)}>
-                  <View className="w-16 h-1 bg-white rounded-full" />
-                </TouchableOpacity>
-
-                <Text className="text-white font-sora-bold text-lg text-center mb-6">
-                  Send 2 ADA
-                </Text>
-
-                <View className="items-center mb-6">
-                  <Image 
-                    source={QRCodeImage} 
-                    resizeMode="contain" 
-                    className="w-32 h-32"
-                  />
-                </View>
-
-                <Text className="text-neutral200 font-sora text-xs text-center mb-6 px-20">
-                  Scan QR code with camera to send 2ADA
-                </Text>
-
-                <View className="flex-row w-full mb-6 overflow-hidden">
-                  {[...Array(100)].map((_, i) => (
-                    <View 
-                      key={i}
-                      className="h-px w-[.5px] bg-neutral200 mx-0.5"
-                    />
-                  ))}
-                </View>                
-
-                <Text
-                  style={{ letterSpacing: .78 }} 
-                  className="text-white text-xs text-center font-space-mono mb-4 px-5 leading-relaxed break-words max-w-[300px] mx-auto"
-                  numberOfLines={3}
-                >
-                  {walletAddress}
-                </Text>
-
-                <TouchableOpacity 
-                  className="flex-row items-center justify-center mb-8"
-                  onPress={handleCopyAddress}
-                >
-                  {copied ? (
-                    <Ionicons name="checkmark" size={16} color="#FFD939" className="mr-2" />
-                  ) : (
-                    <Image 
-                      source={CopyIcon}
-                      className="w-5 h-5 mr-2"
-                      resizeMode="contain"
-                    />
-                  )}
-
-                  <Text className={`font-sora text-sm ${copied ? "text-main" : "text-neutral200"}`}>
-                    {copied ? "Copied!" : "Copy"}
-                  </Text>
-                </TouchableOpacity>
-                
-                <View className="mb-8 w-full mt-5">
-                  <Text className="text-white font-sora text-sm mb-3">
-                    Your sending address
-                  </Text>
-                  <View className="flex-row items-center border border-neutral200 rounded-md px-3 ">
-                    <TextInput
-                      placeholder="Paste ADA address"
-                      placeholderTextColor="#A0A0A0"
-                      className="flex-1 text-white font-sora text-sm h-12"
-                      value={sendingAddress}
-                      onChangeText={setSendingAddress}
-                    />
-                    <Image 
-                      source={InputEndIcon} 
-                      className="ml-2"
-                      resizeMode="contain"
-                    />
-                  </View>
-                </View>
-                
-                <View className="flex-row items-center mt-3 mb-4">
-                  <TouchableOpacity 
-                    onPress={() => setAcceptedPrivacy(!acceptedPrivacy)}
-                    className="mr-2"
-                  >
-                    {acceptedPrivacy ? (
-                      <Ionicons name="checkbox" size={24} color="#FFD939" />
-                    ) : (
-                      <Ionicons name="checkbox-outline" size={24} color="#6B7280" />
-                    )}
-                  </TouchableOpacity>
-                  <Text className="text-white font-sora text-sm">
-                    Accept the <Text className="text-main">Privacy Policy & T&U</Text>
-                  </Text>
-                </View>
-
-                <Button
-                  text={isLoading ? "Processing..." : "I have sent 2 ADA"}
-                  onPress={handleSendAda}
-                  isDisabled={!sendingAddress || !acceptedPrivacy || isLoading}
-                />
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
 
       {/* Confirmation Modal */}
       <Modal
         visible={showConfirmationModal}
         animationType="slide"
         transparent={true}
-        //onRequestClose={() => setShowConfirmationModal(false)}
       >
         <TouchableWithoutFeedback onPress={() => {}}>
           <View className="flex-1 bg-[#0a0a0a]/90 justify-end">
@@ -519,13 +328,6 @@ export default function DidScreen() {
                   <View className="w-14 h-1 bg-neutral100 rounded-full mb-10" />
                 </TouchableOpacity>
 
-                <Text className="text-neutral200 font-sora text-xs text-center mb-2">Connected Wallet</Text>
-                <Text className="text-white font-space-mono-bold uppercase text-sm text-center mb-20">
-                  {sendingAddress.length > 15
-                    ? `${sendingAddress.slice(0, 15)}...`
-                    : sendingAddress}
-                </Text>
-                
                 <View className="items-center">
                   <Image 
                     source={SuccessImage} 
@@ -536,7 +338,7 @@ export default function DidScreen() {
                   Security Setup Done
                   </Text>
                   <Text className="text-neutral200 font-sora text-sm text-center">
-                  A collateral of 2 ADA is required to verify your account setup.
+                  Creating your decentralized identity using Midnight Passport.
                   </Text>
                 </View>
 

@@ -11,12 +11,10 @@
     "lint": "expo lint"
   },
   "dependencies": {
-    "@cardano-foundation/cardano-connect-with-wallet": "^0.2.14",
-    "@cardano-foundation/cardano-connect-with-wallet-core": "^0.2.8",
+    "@dedanzi/midnight-mobile-sdk": "^1.0.0",
     "@expo/config-plugins": "~54.0.1",
     "@expo/vector-icons": "^15.0.2",
-    "@meshsdk/core": "^1.9.0-beta.53",
-    "@meshsdk/provider": "^1.9.0-beta.53",
+    "@midnight-ntwrk/midnight-js": "^4.0.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/blur": "^4.4.1",
     "@react-native-community/netinfo": "11.4.1",
@@ -25,13 +23,7 @@
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/elements": "^2.3.8",
     "@react-navigation/native": "^7.0.14",
-    "@reown/appkit-wagmi-react-native": "^1.2.4",
     "@tanstack/react-query": "^5.79.0",
-    "@utxorpc/sdk": "^0.6.7",
-    "@walletconnect/modal-react-native": "^1.1.0",
-    "@walletconnect/react-native-compat": "^2.21.0",
-    "@web3modal/react-native": "^1.0.0-alpha.8",
-    "@web3modal/wagmi-react-native": "^2.0.5",
     "buffer": "^6.0.3",
     "crypto-js": "^4.2.0",
     "dotenv": "^17.2.3",
@@ -82,8 +74,6 @@
     "react-native-worklets-core": "^1.6.2",
     "tailwindcss": "^3.4.17",
     "typescript": "~5.9.2",
-    "viem": "^2.30.5",
-    "wagmi": "^2.15.4",
     "zustand": "^5.0.5"
   },
   "devDependencies": {
@@ -100,16 +90,9 @@
     "doctor": {
       "reactNativeDirectoryCheck": {
         "exclude": [
-          "@cardano-foundation/*",
-          "@meshsdk/*",
-          "@utxorpc/*",
-          "@walletconnect/*",
-          "@web3modal/*",
-          "firebase",
-          "viem",
-          "wagmi",
-          "react-native-vision-camera-face-detector",
-          "@reown/appkit-wagmi-react-native"
+          "@dedanzi/midnight-mobile-sdk",
+          "@midnight-ntwrk/midnight-js",
+          "firebase"
         ],
         "listUnknownPackages": false
       }
